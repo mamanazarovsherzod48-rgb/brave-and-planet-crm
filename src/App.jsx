@@ -116,13 +116,13 @@ export default function App() {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [brRes, lvlRes, tchRes, grpRes, stdRes, payRes, setRes] = await Promise.all([
+     const [brRes, lvlRes, tchRes, grpRes, stdRes, payRes, setRes] = await Promise.all([
         supabase.from('branches').select('*').order('id', { ascending: true }),
         supabase.from('levels').select('*').order('id', { ascending: true }),
         supabase.from('teachers').select('*').order('id', { ascending: true }),
         supabase.from('groups').select('*').order('id', { ascending: true }),
-        supabase.from('students').select('*').order('id', { ascending: true }),
-        supabase.from('payments').select('*').order('id', { ascending: false }),
+        supabase.from('students').select('*').range(0, 4999).order('id', { ascending: true }),
+        supabase.from('payments').select('*').range(0, 4999).order('id', { ascending: false }),
         supabase.from('system_settings').select('*').single()
       ]);
 
