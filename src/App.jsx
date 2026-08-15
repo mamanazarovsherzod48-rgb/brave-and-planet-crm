@@ -3,7 +3,7 @@ import {
   Building2, Users, GraduationCap, CheckSquare, 
   CreditCard, Settings, Moon, Sun, Edit2, Trash2, Plus, Check, Send, 
   AlertCircle, BookOpen, UserCheck, MessageSquare, Download, Copy, Save, 
-  ChevronRight, Search, Filter, Layers, Eye, LogOut, Lock, User
+  ChevronRight, Search, Filter, Layers, Eye, LogOut, Lock, User, Menu, X
 } from 'lucide-react';
 
 const WEEK_DAYS = [
@@ -32,6 +32,9 @@ export default function App() {
   });
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState('');
+
+  // Mobil menyu holati
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState('profile');
   const [darkMode, setDarkMode] = useState(false);
@@ -338,9 +341,7 @@ export default function App() {
     document.body.removeChild(link);
   };
 
-  // ----------------------------------------------------
   // AGAR FOYDALANUVCHI KIRMAGAN BO'LSA: LOGIN OYNASI
-  // ----------------------------------------------------
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 selection:bg-blue-500 selection:text-white">
@@ -409,21 +410,39 @@ export default function App() {
     );
   }
 
-  // ----------------------------------------------------
-  // ASOSIY CRM TIZIMI
-  // ----------------------------------------------------
   return (
-    <div className={`min-h-screen flex ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`min-h-screen flex flex-col lg:flex-row relative ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
       
-      {/* Chap Menyu (Sidebar) */}
-      <aside className={`w-64 border-r p-5 flex flex-col justify-between shrink-0 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-        <div>
-          <div className="flex items-center gap-3 mb-6 px-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">E</div>
-            <div>
-              <h1 className="font-bold text-lg leading-none">{systemSettings.centerName.split(' ')[0] || 'EduFlow'}</h1>
-              <span className="text-xs text-blue-500 font-medium">CRM Tizimi</span>
+      {/* Mobil Qora Fon (Overlay) */}
+      {isMobileMenuOpen && (
+        <div 
+          onClick={() => setIsMobileMenuOpen(false)} 
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-xs transition-opacity"
+        />
+      )}
+
+      {/* Chap Menyu (Sidebar) - Mobilda Drawer, Katta ekranda doimiy */}
+      <aside className={`
+        w-72 lg:w-64 border-r p-5 flex flex-col justify-between shrink-0 fixed lg:static inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}
+      `}>
+        <div className="overflow-y-auto">
+          <div className="flex items-center justify-between mb-6 px-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">E</div>
+              <div>
+                <h1 className="font-bold text-lg leading-none">{systemSettings.centerName.split(' ')[0] || 'EduFlow'}</h1>
+                <span className="text-xs text-blue-500 font-medium">CRM Tizimi</span>
+              </div>
             </div>
+            {/* Mobilda yopish tugmasi */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+            >
+              <X size={20} />
+            </button>
           </div>
 
           <nav className="space-y-1">
@@ -443,7 +462,10 @@ export default function App() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setIsMobileMenuOpen(false);
+                  }}
                   className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
                     activeTab === item.id 
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
@@ -458,9 +480,8 @@ export default function App() {
           </nav>
         </div>
 
-        {/* Quyi qism: Rejim + Foydalanuvchi + Chiqish */}
+        {/* Quyi qism */}
         <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-          
           <button 
             onClick={() => setDarkMode(!darkMode)}
             className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl border text-xs font-medium transition-all ${darkMode ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-100'}`}
@@ -471,7 +492,6 @@ export default function App() {
             </span>
           </button>
 
-          {/* Foydalanuvchi profili va Logout */}
           <div className={`p-3 rounded-xl border flex items-center justify-between ${darkMode ? 'bg-slate-700/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
             <div className="overflow-hidden mr-2">
               <p className="text-xs font-bold truncate">{currentUser.full_name}</p>
@@ -485,26 +505,33 @@ export default function App() {
               <LogOut size={16} />
             </button>
           </div>
-
         </div>
       </aside>
 
       {/* Asosiy qism */}
-      <main className="flex-1 p-8 overflow-y-auto max-w-7xl">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl w-full">
         
-        {/* Header */}
-        <header className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-200 dark:border-slate-700">
-          <div>
-            <h2 className="text-2xl font-bold capitalize">{activeTab === 'finder' ? 'Yangi O‘quvchilarga Guruh Topish' : `${activeTab} bo‘limi`}</h2>
-            <p className="text-sm text-slate-500">Filiallar, guruhlar va o‘quv markazini boshqarish</p>
+        {/* Header - Mobil Gamburger Tugmasi bilan */}
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm"
+            >
+              <Menu size={22} />
+            </button>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold capitalize">{activeTab === 'finder' ? 'Guruh Qidirish' : `${activeTab} bo‘limi`}</h2>
+              <p className="text-xs sm:text-sm text-slate-500">Filiallar va markaz boshqaruvi</p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Filial:</span>
+          <div className="flex items-center gap-3 self-end sm:self-auto">
+            <span className="text-xs sm:text-sm font-medium">Filial:</span>
             <select 
               value={selectedBranch} 
               onChange={(e) => setSelectedBranch(e.target.value)}
-              className={`px-4 py-2 rounded-xl border font-medium outline-none transition-all text-sm ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border font-medium outline-none text-xs sm:text-sm ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
             >
               <option value="ALL">Barcha filiallar</option>
               {branches.map(b => (
@@ -517,93 +544,91 @@ export default function App() {
         {/* 1. DASHBOARD BO'LIMI */}
         {activeTab === 'profile' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
               
               <div 
                 onClick={() => setActiveTab('students')}
-                className={`p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700 hover:border-blue-500' : 'bg-white border-slate-200 hover:shadow-lg hover:border-blue-400'}`}
+                className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}
               >
                 <div className="flex justify-between items-center text-slate-500 font-medium">
-                  <span className="text-sm">O‘quvchilar</span>
-                  <GraduationCap size={20} className="text-blue-500" />
+                  <span className="text-xs sm:text-sm">O‘quvchilar</span>
+                  <GraduationCap size={18} className="text-blue-500" />
                 </div>
-                <p className="text-3xl font-bold mt-2 text-blue-600">{filteredStudents.length} ta</p>
-                <span className="text-[11px] text-slate-400 mt-2 block">O‘quvchilar bo‘limiga o‘tish →</span>
+                <p className="text-2xl sm:text-3xl font-bold mt-2 text-blue-600">{filteredStudents.length} ta</p>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 mt-2 block">Bo‘limga o‘tish →</span>
               </div>
 
               <div 
                 onClick={() => setActiveTab('teachers')}
-                className={`p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700 hover:border-purple-500' : 'bg-white border-slate-200 hover:shadow-lg hover:border-purple-400'}`}
+                className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}
               >
                 <div className="flex justify-between items-center text-slate-500 font-medium">
-                  <span className="text-sm">O‘qituvchilar</span>
-                  <UserCheck size={20} className="text-purple-500" />
+                  <span className="text-xs sm:text-sm">O‘qituvchilar</span>
+                  <UserCheck size={18} className="text-purple-500" />
                 </div>
-                <p className="text-3xl font-bold mt-2 text-purple-600">{filteredTeachers.length} ta</p>
-                <span className="text-[11px] text-slate-400 mt-2 block">O‘qituvchilar ro‘yxatiga o‘tish →</span>
+                <p className="text-2xl sm:text-3xl font-bold mt-2 text-purple-600">{filteredTeachers.length} ta</p>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 mt-2 block">Bo‘limga o‘tish →</span>
               </div>
 
               <div 
                 onClick={() => setActiveTab('groups')}
-                className={`p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700 hover:border-emerald-500' : 'bg-white border-slate-200 hover:shadow-lg hover:border-emerald-400'}`}
+                className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}
               >
                 <div className="flex justify-between items-center text-slate-500 font-medium">
-                  <span className="text-sm">Faol Guruhlar</span>
-                  <BookOpen size={20} className="text-emerald-500" />
+                  <span className="text-xs sm:text-sm">Guruhlar</span>
+                  <BookOpen size={18} className="text-emerald-500" />
                 </div>
-                <p className="text-3xl font-bold mt-2 text-emerald-600">{filteredGroups.length} ta</p>
-                <span className="text-[11px] text-slate-400 mt-2 block">Guruhlar bo‘limiga o‘tish →</span>
+                <p className="text-2xl sm:text-3xl font-bold mt-2 text-emerald-600">{filteredGroups.length} ta</p>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 mt-2 block">Bo‘limga o‘tish →</span>
               </div>
 
               <div 
                 onClick={() => setActiveTab('payments')}
-                className={`p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700 hover:border-rose-500' : 'bg-white border-slate-200 hover:shadow-lg hover:border-rose-400'}`}
+                className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}
               >
                 <div className="flex justify-between items-center text-slate-500 font-medium">
-                  <span className="text-sm">Qarzdorliklar</span>
-                  <CreditCard size={20} className="text-rose-500" />
+                  <span className="text-xs sm:text-sm">Qarzdorlik</span>
+                  <CreditCard size={18} className="text-rose-500" />
                 </div>
-                <p className="text-3xl font-bold mt-2 text-rose-500">
+                <p className="text-2xl sm:text-3xl font-bold mt-2 text-rose-500">
                   {filteredStudents.filter(s => s.debt > 0).length} ta
                 </p>
-                <span className="text-[11px] text-slate-400 mt-2 block">To‘lovlar jadvaliga o‘tish →</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 mt-2 block">Bo‘limga o‘tish →</span>
               </div>
 
             </div>
 
             {/* Filiallar */}
-            <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <h3 className="text-lg font-bold mb-4">Filiallar Ro‘yxati</h3>
+            <div className={`p-5 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <h3 className="text-base sm:text-lg font-bold mb-4">Filiallar Ro‘yxati</h3>
               <div className="space-y-3">
                 {branches.map(b => (
-                  <div key={b.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                  <div key={b.id} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                     {editingBranchId === b.id ? (
-                      <div className="flex items-center gap-3 flex-1 mr-4">
+                      <div className="flex items-center gap-2 flex-1 mr-3">
                         <input
                           type="text"
                           value={editBranchName}
                           onChange={(e) => setEditBranchName(e.target.value)}
-                          className={`w-full px-3 py-1.5 rounded-lg border outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-300'}`}
+                          className={`w-full px-3 py-1.5 rounded-lg border text-sm outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-300'}`}
                         />
                         <button 
                           onClick={() => {
                             setBranches(branches.map(br => br.id === b.id ? { ...br, name: editBranchName } : br));
                             setEditingBranchId(null);
                           }}
-                          className="p-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                          className="p-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shrink-0"
                         >
                           <Check size={16} />
                         </button>
                       </div>
                     ) : (
-                      <div>
-                        <p className="font-semibold">{b.name}</p>
-                      </div>
+                      <p className="font-semibold text-sm sm:text-base">{b.name}</p>
                     )}
                     {editingBranchId !== b.id && (
                       <button 
                         onClick={() => { setEditingBranchId(b.id); setEditBranchName(b.name); }}
-                        className="p-2 text-slate-400 hover:text-blue-500 rounded-lg"
+                        className="p-1.5 text-slate-400 hover:text-blue-500 rounded-lg"
                       >
                         <Edit2 size={16} />
                       </button>
@@ -618,13 +643,13 @@ export default function App() {
         {/* 2. GURUH TOPISH FILTRI */}
         {activeTab === 'finder' && (
           <div className="space-y-6">
-            <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="flex items-center gap-2 mb-4 text-blue-600 font-bold text-lg">
+            <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <div className="flex items-center gap-2 mb-4 text-blue-600 font-bold text-base sm:text-lg">
                 <Filter size={20} />
                 <h3>Yangi O‘quvchi Talablari Bo‘yicha Guruh Izlash</h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Filial</label>
                   <select 
@@ -680,10 +705,8 @@ export default function App() {
               </div>
             </div>
 
-            <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-base">Mos Keladigan Guruhlar ({searchMatchedGroups.length} ta topildi)</h3>
-              </div>
+            <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <h3 className="font-bold text-sm sm:text-base mb-4">Mos Keladigan Guruhlar ({searchMatchedGroups.length} ta)</h3>
 
               {searchMatchedGroups.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -693,10 +716,10 @@ export default function App() {
                     const groupStudentsCount = students.filter(s => s.group_id === g.id).length;
 
                     return (
-                      <div key={g.id} className="p-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 flex flex-col justify-between gap-3">
+                      <div key={g.id} className="p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 flex flex-col justify-between gap-3">
                         <div>
                           <div className="flex justify-between items-center">
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
                               {level?.name || 'Darajasiz'}
                             </span>
                             <span className="text-xs text-slate-400 font-medium">
@@ -704,19 +727,19 @@ export default function App() {
                             </span>
                           </div>
                           
-                          <h4 className="text-lg font-bold mt-2">{g.name}</h4>
-                          <p className="text-sm text-slate-500 mt-1">
-                            O‘qituvchi: <span className="font-semibold text-slate-700 dark:text-slate-200">{teacher?.full_name}</span>
+                          <h4 className="text-base sm:text-lg font-bold mt-2">{g.name}</h4>
+                          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                            Ustoz: <span className="font-semibold text-slate-700 dark:text-slate-200">{teacher?.full_name}</span>
                           </p>
                         </div>
 
-                        <div className="border-t border-slate-200 dark:border-slate-700 pt-3 text-xs space-y-1.5 text-slate-500 dark:text-slate-400">
+                        <div className="border-t border-slate-200 dark:border-slate-700 pt-3 text-xs space-y-2 text-slate-500 dark:text-slate-400">
                           <div className="flex justify-between">
                             <span>Kunlar: <b className="text-slate-800 dark:text-slate-200">{g.days?.join(', ')}</b> ({g.time})</span>
                             <span className="font-bold text-blue-500">{groupStudentsCount} ta o‘quvchi</span>
                           </div>
-                          <div className="flex justify-between items-center pt-2">
-                            <span className="font-bold text-emerald-600 text-sm">{g.monthly_fee?.toLocaleString()} {systemSettings.currency} / oy</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                            <span className="font-bold text-emerald-600 text-sm">{g.monthly_fee?.toLocaleString()} {systemSettings.currency}</span>
                             <button
                               onClick={() => {
                                 setModalData({ 
@@ -729,9 +752,9 @@ export default function App() {
                                 setIsEditing(false);
                                 setModalType('student');
                               }}
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs shadow"
+                              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs text-center shadow"
                             >
-                              + Shu Guruhga O‘quvchi Qo‘shish
+                              + Guruhga O‘quvchi Qo‘shish
                             </button>
                           </div>
                         </div>
@@ -740,7 +763,7 @@ export default function App() {
                   })}
                 </div>
               ) : (
-                <div className="text-center py-12 text-slate-400">
+                <div className="text-center py-10 text-slate-400 text-sm">
                   <p>Berilgan talablarga mos guruh topilmadi.</p>
                 </div>
               )}
@@ -750,38 +773,38 @@ export default function App() {
 
         {/* 3. DAVOMAT BO'LIMI */}
         {activeTab === 'attendance' && (
-          <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <div>
-                <h3 className="text-lg font-bold">Guruh Davomati</h3>
-                <p className="text-xs text-slate-400">Kerakli guruhni tanlab davomatni belgilang</p>
+                <h3 className="text-base sm:text-lg font-bold">Guruh Davomati</h3>
+                <p className="text-xs text-slate-400">Kerakli guruhni tanlang</p>
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium">Guruh:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm font-medium">Guruh:</span>
                 <select 
                   value={attendanceGroupId}
                   onChange={(e) => setAttendanceGroupId(Number(e.target.value))}
-                  className={`px-4 py-2 rounded-xl border text-sm font-semibold outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-100 border-slate-300'}`}
+                  className={`w-full sm:w-auto px-3 py-2 rounded-xl border text-xs sm:text-sm font-semibold outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-100 border-slate-300'}`}
                 >
                   {filteredGroups.map(g => {
                     const teacher = teachers.find(t => t.id === g.teacher_id);
                     return (
-                      <option key={g.id} value={g.id}>{g.name} ({teacher?.full_name || 'Ustoz biriktirilmagan'})</option>
+                      <option key={g.id} value={g.id}>{g.name} ({teacher?.full_name || 'Ustozsiz'})</option>
                     );
                   })}
                 </select>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <table className="w-full text-left min-w-[500px]">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-400 text-sm">
-                    <th className="pb-3 font-medium">O‘quvchi</th>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-400 text-xs sm:text-sm">
+                    <th className="pb-3 px-3 sm:px-0 font-medium">O‘quvchi</th>
                     <th className="pb-3 font-medium">Telefon</th>
-                    <th className="pb-3 font-medium text-center">Bugungi Davomat (+ / -)</th>
-                    <th className="pb-3 font-medium text-right">Amallar</th>
+                    <th className="pb-3 font-medium text-center">Davomat (+/-)</th>
+                    <th className="pb-3 pr-3 sm:pr-0 font-medium text-right">Amallar</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -793,29 +816,29 @@ export default function App() {
 
                       return (
                         <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30">
-                          <td className="py-4 font-semibold">{student.full_name}</td>
-                          <td className="py-4 text-sm text-slate-400">{student.phone}</td>
-                          <td className="py-4">
+                          <td className="py-3 px-3 sm:px-0 font-semibold text-sm">{student.full_name}</td>
+                          <td className="py-3 text-xs sm:text-sm text-slate-400">{student.phone}</td>
+                          <td className="py-3">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => handleAttendance(attendanceGroupId, student.id, '+')}
-                                className={`w-9 h-9 rounded-lg font-bold transition-all ${
-                                  attStatus === '+' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-emerald-500'
+                                className={`w-8 h-8 rounded-lg font-bold text-sm transition-all ${
+                                  attStatus === '+' ? 'bg-emerald-600 text-white shadow' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-emerald-500'
                                 }`}
                               >
                                 +
                               </button>
                               <button
                                 onClick={() => handleAttendance(attendanceGroupId, student.id, '-')}
-                                className={`w-9 h-9 rounded-lg font-bold transition-all ${
-                                  attStatus === '-' ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-rose-500'
+                                className={`w-8 h-8 rounded-lg font-bold text-sm transition-all ${
+                                  attStatus === '-' ? 'bg-rose-600 text-white shadow' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-rose-500'
                                 }`}
                               >
                                 -
                               </button>
                             </div>
                           </td>
-                          <td className="py-4 text-right">
+                          <td className="py-3 pr-3 sm:pr-0 text-right">
                             <button
                               onClick={() => {
                                 setPaymentModalData({
@@ -827,9 +850,9 @@ export default function App() {
                                 setSelectedMonth(MONTHS_LIST[new Date().getMonth()]);
                                 setSelectedYear(currentYear);
                               }}
-                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl"
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shrink-0"
                             >
-                              To‘lov Qabul Qilish
+                              To‘lov
                             </button>
                           </td>
                         </tr>
@@ -837,7 +860,7 @@ export default function App() {
                     })
                   ) : (
                     <tr>
-                      <td colSpan="4" className="text-center py-6 text-slate-400 text-sm">Ushbu guruhda hali o‘quvchilar mavjud emas</td>
+                      <td colSpan="4" className="text-center py-6 text-slate-400 text-xs sm:text-sm">Bu guruhda o‘quvchilar yo‘q</td>
                     </tr>
                   )}
                 </tbody>
@@ -848,9 +871,9 @@ export default function App() {
 
         {/* 4. GURUHLAR BO'LIMI */}
         {activeTab === 'groups' && (
-          <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+          <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold">Guruhlar Boshqaruvi</h3>
+              <h3 className="text-base sm:text-lg font-bold">Guruhlar Boshqaruvi</h3>
               <button
                 onClick={() => {
                   setModalData({ 
@@ -865,9 +888,9 @@ export default function App() {
                   setIsEditing(false);
                   setModalType('group');
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold"
+                className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow"
               >
-                <Plus size={16} /> Guruh Qo‘shish
+                <Plus size={15} /> Qo‘shish
               </button>
             </div>
 
@@ -878,43 +901,43 @@ export default function App() {
                 const groupStudentsCount = students.filter(s => s.group_id === g.id).length;
 
                 return (
-                  <div key={g.id} className="p-5 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col justify-between gap-4">
+                  <div key={g.id} className="p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col justify-between gap-3">
                     <div>
                       <div className="flex justify-between items-start">
-                        <div className="flex gap-2">
-                          <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
-                            {branches.find(b => b.id === g.branch_id)?.name || 'Filial'}
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+                            {branches.find(b => b.id === g.branch_id)?.name}
                           </span>
-                          <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-50 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-50 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300">
                             {level?.name || 'Darajasiz'}
                           </span>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <button 
                             onClick={() => { setModalData(g); setIsEditing(true); setModalType('group'); }}
                             className="text-slate-400 hover:text-blue-500 p-1"
                           >
-                            <Edit2 size={16} />
+                            <Edit2 size={15} />
                           </button>
                           <button 
                             onClick={() => handleDeleteGroup(g.id)}
                             className="text-slate-400 hover:text-rose-500 p-1"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={15} />
                           </button>
                         </div>
                       </div>
-                      <h4 className="text-lg font-bold mt-2">{g.name}</h4>
-                      <p className="text-sm text-slate-500 mt-1">
+                      <h4 className="text-base sm:text-lg font-bold mt-2">{g.name}</h4>
+                      <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                         O‘qituvchi: <span className="font-semibold text-slate-700 dark:text-slate-300">{teacher?.full_name || 'Biriktirilmagan'}</span>
                       </p>
                     </div>
                     <div className="text-xs text-slate-400 space-y-1 border-t pt-3 border-slate-100 dark:border-slate-700">
                       <div className="flex justify-between">
-                        <span>Kunlar: <b className="text-slate-700 dark:text-slate-300">{g.days?.join(', ') || 'Belgilanmagan'}</b> ({g.time})</span>
-                        <span className="font-semibold text-blue-500">{groupStudentsCount} ta o‘quvchi</span>
+                        <span>Kunlar: <b className="text-slate-700 dark:text-slate-300">{g.days?.join(', ')}</b> ({g.time})</span>
+                        <span className="font-semibold text-blue-500">{groupStudentsCount} ta</span>
                       </div>
-                      <p>Oylik to‘lov: {g.monthly_fee?.toLocaleString()} {systemSettings.currency}</p>
+                      <p>To‘lov: {g.monthly_fee?.toLocaleString()} {systemSettings.currency} / oy</p>
                     </div>
                   </div>
                 );
@@ -925,11 +948,11 @@ export default function App() {
 
         {/* 5. O'QITUVCHILAR BO'LIMI */}
         {activeTab === 'teachers' && (
-          <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+          <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-lg font-bold">O‘qituvchilar Ro‘yxati</h3>
-                <p className="text-xs text-slate-400">Guruh sozlamalarini ochish uchun guruh nomi ustiga bosing</p>
+                <h3 className="text-base sm:text-lg font-bold">O‘qituvchilar Ro‘yxati</h3>
+                <p className="text-xs text-slate-400">Jami: {filteredTeachers.length} ta</p>
               </div>
               <button
                 onClick={() => {
@@ -937,21 +960,21 @@ export default function App() {
                   setIsEditing(false);
                   setModalType('teacher');
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold"
+                className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow"
               >
-                <Plus size={16} /> O‘qituvchi Qo‘shish
+                <Plus size={15} /> Qo‘shish
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {filteredTeachers.map(t => {
                 const teacherGroups = groups.filter(g => g.teacher_id === t.id);
 
                 return (
-                  <div key={t.id} className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col justify-between shadow-sm">
+                  <div key={t.id} className="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col justify-between shadow-xs">
                     <div>
                       <div className="flex justify-between items-start mb-3">
-                        <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center font-bold text-purple-600">
+                        <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center font-bold text-purple-600">
                           {t.full_name?.charAt(0)}
                         </div>
                         <div className="flex gap-1">
@@ -959,50 +982,44 @@ export default function App() {
                             onClick={() => { setModalData(t); setIsEditing(true); setModalType('teacher'); }}
                             className="text-slate-400 hover:text-blue-500 p-1"
                           >
-                            <Edit2 size={15} />
+                            <Edit2 size={14} />
                           </button>
                           <button 
                             onClick={() => handleDeleteTeacher(t.id)}
                             className="text-slate-400 hover:text-rose-500 p-1"
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
 
-                      <h4 className="font-bold text-base">{t.full_name}</h4>
+                      <h4 className="font-bold text-sm sm:text-base">{t.full_name}</h4>
                       <p className="text-xs text-blue-500 font-medium">{t.subject}</p>
                       
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-400 space-y-1">
+                      <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-400 space-y-0.5">
                         <p>Tel: <span className="font-medium text-slate-700 dark:text-slate-300">{t.phone}</span></p>
                         <p>Filial: <span className="font-medium text-slate-700 dark:text-slate-300">{branches.find(b => b.id === t.branch_id)?.name}</span></p>
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Faol Guruhlari:</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[11px] font-bold text-slate-500">Guruhlari:</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
                           {teacherGroups.length} ta
                         </span>
                       </div>
 
-                      <div className="flex flex-wrap gap-1.5">
-                        {teacherGroups.length > 0 ? (
-                          teacherGroups.map(g => (
-                            <button
-                              key={g.id}
-                              onClick={() => handleOpenGroupSettings(g)}
-                              title="Guruh sozlamalarini tahrirlash uchun bosing"
-                              className="group flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-blue-50 dark:bg-slate-700 dark:hover:bg-blue-900/40 text-slate-700 hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-300 transition-all border border-transparent hover:border-blue-300"
-                            >
-                              <span>{g.name}</span>
-                              <ChevronRight size={12} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                          ))
-                        ) : (
-                          <span className="text-[11px] text-slate-400 italic">Hali guruh biriktirilmagan</span>
-                        )}
+                      <div className="flex flex-wrap gap-1">
+                        {teacherGroups.map(g => (
+                          <button
+                            key={g.id}
+                            onClick={() => handleOpenGroupSettings(g)}
+                            className="text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-blue-50 dark:bg-slate-700 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200"
+                          >
+                            {g.name}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
@@ -1015,18 +1032,18 @@ export default function App() {
 
         {/* 6. O'QUVCHILAR BO'LIMI */}
         {activeTab === 'students' && (
-          <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+          <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <div>
-                <h3 className="text-lg font-bold">O‘quvchilar Boshqaruvi</h3>
-                <p className="text-xs text-slate-400">Jami o‘quvchilar soni: {filteredStudents.length} ta</p>
+                <h3 className="text-base sm:text-lg font-bold">O‘quvchilar Boshqaruvi</h3>
+                <p className="text-xs text-slate-400">Jami: {filteredStudents.length} ta</p>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={handleCopyAllPhones}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-semibold shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-semibold"
                 >
-                  <Copy size={15} /> Barcha Raqamlarni Olish
+                  <Copy size={14} /> <span className="hidden sm:inline">Raqamlarni Olish</span>
                 </button>
                 <button
                   onClick={() => {
@@ -1040,47 +1057,41 @@ export default function App() {
                     setIsEditing(false);
                     setModalType('student');
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold"
                 >
-                  <Plus size={16} /> O‘quvchi Qo‘shish
+                  <Plus size={15} /> Qo‘shish
                 </button>
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {filteredStudents.map(s => {
                 const studentGroup = groups.find(g => g.id === s.group_id);
                 const level = levels.find(l => l.id === studentGroup?.level_id);
 
                 return (
-                  <div key={s.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold">{s.full_name}</p>
-                        <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 rounded text-[11px] font-semibold">
-                          {studentGroup?.name || 'Guruhsiz'} ({level?.name || 'Darajasiz'})
+                  <div key={s.id} className="flex items-center justify-between p-3 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="overflow-hidden pr-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="font-semibold text-sm sm:text-base truncate">{s.full_name}</p>
+                        <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 rounded text-[10px] sm:text-[11px] font-semibold">
+                          {studentGroup?.name} ({level?.name})
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Tel: <span className="font-medium text-slate-700 dark:text-slate-300">{s.phone}</span> | 
-                        Ota-onasi: <span className="font-medium text-slate-700 dark:text-slate-300">{s.parent_phone}</span> | 
-                        Qo‘shilgan: {s.joined_date}
+                      <p className="text-[11px] sm:text-xs text-slate-400 mt-1">
+                        Tel: <span className="text-slate-700 dark:text-slate-300">{s.phone}</span> | Ota-onasi: <span className="text-slate-700 dark:text-slate-300">{s.parent_phone}</span>
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-medium">
-                        {branches.find(b => b.id === s.branch_id)?.name}
-                      </span>
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                       <button 
-                        title="Guruhini o'zgartirish yoki ma'lumotlarni tahrirlash"
                         onClick={() => { setModalData(s); setIsEditing(true); setModalType('student'); }}
-                        className="text-slate-400 hover:text-blue-500 p-1"
+                        className="text-slate-400 hover:text-blue-500 p-1.5"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button 
                         onClick={() => handleDeleteStudent(s.id)}
-                        className="text-slate-400 hover:text-rose-500 p-1"
+                        className="text-slate-400 hover:text-rose-500 p-1.5"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -1094,22 +1105,22 @@ export default function App() {
 
         {/* 7. TO'LOVLAR BO'LIMI */}
         {activeTab === 'payments' && (
-          <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <h3 className="text-lg font-bold mb-4">Qarzdorliklar Ro‘yxati</h3>
-            <div className="space-y-4">
+          <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <h3 className="text-base sm:text-lg font-bold mb-4">Qarzdorliklar Ro‘yxati</h3>
+            <div className="space-y-3">
               {filteredStudents.map(student => {
                 const group = groups.find(g => g.id === student.group_id);
                 return (
-                  <div key={student.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40">
+                  <div key={student.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold">{student.full_name}</p>
+                        <p className="font-semibold text-sm sm:text-base">{student.full_name}</p>
                         <span className="text-xs text-blue-500 font-medium">({group?.name})</span>
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5">Ota-onasi: {student.parent_phone}</p>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className={`text-sm font-bold ${student.debt > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                    <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200 dark:border-slate-700">
+                      <span className={`text-xs sm:text-sm font-bold ${student.debt > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
                         {student.debt > 0 ? `${student.debt.toLocaleString()} ${systemSettings.currency} qarz` : "To'langan"}
                       </span>
                       {student.debt > 0 && (
@@ -1118,9 +1129,9 @@ export default function App() {
                             const customSms = generateSmsText(student);
                             alert(`SMS yuborildi (${student.parent_phone}):\n\n"${customSms}"`);
                           }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold shadow-sm"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold shadow-xs"
                         >
-                          <Send size={13} /> SMS Eslatma
+                          <Send size={12} /> SMS Eslatma
                         </button>
                       )}
                     </div>
@@ -1134,57 +1145,54 @@ export default function App() {
         {/* 8. SMS XABARNOMA BO'LIMI */}
         {activeTab === 'sms' && (
           <div className="space-y-6">
-            <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <div className="flex items-center gap-2 mb-2 text-blue-600">
                 <MessageSquare size={20} />
-                <h3 className="text-lg font-bold">Dinamik SMS Xabarnoma Tizimi</h3>
+                <h3 className="text-base sm:text-lg font-bold">SMS Xabarnoma Tizimi</h3>
               </div>
-              <p className="text-xs text-slate-400 mb-6">
-                Shablon ichida teglardan foydalaning. Tizim har bir o‘quvchining guruhi va to‘lov summasini alohida hisoblab, shaxsiy SMS yuboradi.
+              <p className="text-xs text-slate-400 mb-4">
+                Dinamik teglardan foydalaning:
               </p>
 
-              <div className="flex flex-wrap gap-2 mb-3">
-                <span className="text-xs bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300 px-2 py-1 rounded-md font-mono">&#123;ism&#125;</span>
-                <span className="text-xs bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-300 px-2 py-1 rounded-md font-mono">&#123;guruh&#125;</span>
-                <span className="text-xs bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-1 rounded-md font-mono">&#123;summa&#125;</span>
-                <span className="text-xs bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300 px-2 py-1 rounded-md font-mono">&#123;oy&#125;</span>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="text-[11px] bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300 px-2 py-1 rounded font-mono">&#123;ism&#125;</span>
+                <span className="text-[11px] bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-300 px-2 py-1 rounded font-mono">&#123;guruh&#125;</span>
+                <span className="text-[11px] bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-1 rounded font-mono">&#123;summa&#125;</span>
+                <span className="text-[11px] bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300 px-2 py-1 rounded font-mono">&#123;oy&#125;</span>
               </div>
 
               <div className="space-y-4 max-w-2xl">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">SMS Shablon Matni:</label>
                   <textarea
                     rows="4"
                     value={smsTemplate}
                     onChange={(e) => setSmsTemplate(e.target.value)}
-                    className={`w-full p-3.5 rounded-xl border outline-none text-sm font-medium leading-relaxed ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
+                    className={`w-full p-3 rounded-xl border outline-none text-xs sm:text-sm font-medium leading-relaxed ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
                   />
                 </div>
 
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => {
-                      const debtors = filteredStudents.filter(s => s.debt > 0);
-                      if (debtors.length === 0) {
-                        alert("Qarzdor o'quvchilar mavjud emas!");
-                        return;
-                      }
-                      const smsList = debtors.map(s => `Kimga: ${s.parent_phone} (${s.full_name})\nMatn: ${generateSmsText(s)}`).join('\n\n---\n\n');
-                      alert(`Barcha ${debtors.length} ta qarzdorlarga moslashtirilgan shaxsiy SMS yuborildi!\n\nNamuna xabarlar:\n\n${smsList}`);
-                    }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-blue-500/20"
-                  >
-                    <Send size={16} /> Barcha Qarzdorlarga SMS Yuborish ({filteredStudents.filter(s => s.debt > 0).length} ta)
-                  </button>
-                </div>
+                <button 
+                  onClick={() => {
+                    const debtors = filteredStudents.filter(s => s.debt > 0);
+                    if (debtors.length === 0) {
+                      alert("Qarzdor o'quvchilar yo'q!");
+                      return;
+                    }
+                    const smsList = debtors.map(s => `Kimga: ${s.parent_phone} (${s.full_name})\nMatn: ${generateSmsText(s)}`).join('\n\n---\n\n');
+                    alert(`Barcha qarzdorlarga SMS yuborildi!\n\nNamuna xabarlar:\n\n${smsList}`);
+                  }}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow"
+                >
+                  <Send size={15} /> Qarzdorlarga SMS Yuborish ({filteredStudents.filter(s => s.debt > 0).length} ta)
+                </button>
               </div>
             </div>
 
             {/* Jonli SMS Ko'rinishi */}
-            <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="flex items-center gap-2 mb-4 text-emerald-600 font-bold text-base">
+            <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <div className="flex items-center gap-2 mb-4 text-emerald-600 font-bold text-sm sm:text-base">
                 <Eye size={18} />
-                <h4>Qarzdorlar Uchun Shakllanadigan SMS Xabarlar (Jonli Ko‘rinish)</h4>
+                <h4>Shakllanadigan SMS Xabarlar</h4>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1193,22 +1201,22 @@ export default function App() {
                   const generatedMsg = generateSmsText(s);
 
                   return (
-                    <div key={s.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 flex flex-col justify-between gap-3">
+                    <div key={s.id} className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 flex flex-col justify-between gap-2.5">
                       <div>
-                        <div className="flex justify-between items-center text-xs text-slate-400 mb-1.5">
+                        <div className="flex justify-between items-center text-xs text-slate-400 mb-1">
                           <span className="font-semibold text-slate-700 dark:text-slate-200">{s.full_name}</span>
-                          <span>Tel: {s.parent_phone}</span>
+                          <span>{s.parent_phone}</span>
                         </div>
-                        <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-mono leading-relaxed text-slate-800 dark:text-slate-200">
+                        <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-mono leading-relaxed text-slate-800 dark:text-slate-200">
                           {generatedMsg}
                         </div>
                       </div>
                       
                       <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px]">
-                        <span className="text-blue-600 font-medium">Guruh: {studentGroup?.name} ({studentGroup?.monthly_fee?.toLocaleString()} {systemSettings.currency})</span>
+                        <span className="text-blue-600 font-medium truncate">{studentGroup?.name}</span>
                         <button
                           onClick={() => alert(`SMS yuborildi (${s.parent_phone}):\n\n"${generatedMsg}"`)}
-                          className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold flex items-center gap-1 shadow-sm"
+                          className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold flex items-center gap-1 shrink-0"
                         >
                           <Send size={11} /> Yuborish
                         </button>
@@ -1223,34 +1231,34 @@ export default function App() {
 
         {/* 9. HISOBOT VA EXCEL BO'LIMI */}
         {activeTab === 'reports' && (
-          <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <h3 className="text-lg font-bold mb-2">Hisobotlarni Excel (CSV) Formatida Yuklab Olish</h3>
-            <p className="text-xs text-slate-400 mb-6">O‘quvchilar bazasi yoki oylik to‘lovlar hisobotini yuklab oling.</p>
+          <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <h3 className="text-base sm:text-lg font-bold mb-2">Excel Formatida Yuklab Olish</h3>
+            <p className="text-xs text-slate-400 mb-6">Hisobotlarni CSV/Excel formatida yuklab oling.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-              <div className="p-5 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between">
+              <div className="p-4 sm:p-5 border border-slate-200 dark:border-slate-700 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h4 className="font-semibold text-sm">O‘quvchilar To‘liq Ro‘yxati</h4>
-                  <p className="text-xs text-slate-400 mt-1">F.I.O, guruhlari, darajasi, telefon raqamlari</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Barcha o‘quvchilar va telefon raqamlari</p>
                 </div>
                 <button
                   onClick={() => exportToExcel('students')}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm"
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs shrink-0"
                 >
-                  <Download size={15} /> Excel Yuklash
+                  <Download size={14} /> Excel Yuklash
                 </button>
               </div>
 
-              <div className="p-5 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between">
+              <div className="p-4 sm:p-5 border border-slate-200 dark:border-slate-700 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h4 className="font-semibold text-sm">To‘lovlar & Balans Hisoboti</h4>
-                  <p className="text-xs text-slate-400 mt-1">Qarzdorlar va to‘langan summalar</p>
+                  <h4 className="font-semibold text-sm">To‘lovlar Hisoboti</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">Qarzdorlar va holatlar</p>
                 </div>
                 <button
                   onClick={() => exportToExcel('payments')}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm"
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs shrink-0"
                 >
-                  <Download size={15} /> Excel Yuklash
+                  <Download size={14} /> Excel Yuklash
                 </button>
               </div>
             </div>
@@ -1260,9 +1268,9 @@ export default function App() {
         {/* 10. SOZLAMALAR BO'LIMI */}
         {activeTab === 'settings' && (
           <div className="space-y-6">
-            <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <h3 className="text-lg font-bold mb-4">Tizim va Markaz Sozlamalari</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+            <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <h3 className="text-base sm:text-lg font-bold mb-4">Markaz Sozlamalari</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">O‘quv Markazi Nomi</label>
                   <input
@@ -1281,55 +1289,46 @@ export default function App() {
                     className={`w-full px-3 py-2 rounded-xl border outline-none text-sm ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Oylik To‘lov Muddati (Har oyning kuni)</label>
-                  <input
-                    type="number"
-                    value={systemSettings.smsReminderDay}
-                    onChange={(e) => setSystemSettings({ ...systemSettings, smsReminderDay: Number(e.target.value) })}
-                    className={`w-full px-3 py-2 rounded-xl border outline-none text-sm ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
-                  />
-                </div>
               </div>
 
               <button
                 onClick={() => alert("Sozlamalar muvaffaqiyatli saqlandi!")}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold mt-5 shadow-md"
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold mt-4 shadow"
               >
-                <Save size={16} /> Sozlamalarni Saqlash
+                <Save size={15} /> Saqlash
               </button>
             </div>
 
             {/* Guruh Darajalari */}
-            <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <div className="flex items-center gap-2 mb-2">
                 <Layers size={18} className="text-purple-500" />
-                <h3 className="text-lg font-bold">Guruh Darajalari Ro‘yxati (Levels)</h3>
+                <h3 className="text-base sm:text-lg font-bold">Guruh Darajalari (Levels)</h3>
               </div>
-              <p className="text-xs text-slate-400 mb-4">Guruh qo‘shayotganda tanlanadigan dinamik darajalarni boshqaring.</p>
+              <p className="text-xs text-slate-400 mb-4">Guruhlarga biriktiriladigan darajalar</p>
 
-              <form onSubmit={handleAddLevel} className="flex gap-3 max-w-md mb-4">
+              <form onSubmit={handleAddLevel} className="flex gap-2 max-w-md mb-4">
                 <input
                   required
                   type="text"
                   placeholder="Yangi daraja (masalan: Pre-Intermediate)"
                   value={newLevelName}
                   onChange={(e) => setNewLevelName(e.target.value)}
-                  className={`flex-1 px-3 py-2 rounded-xl border outline-none text-sm ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
+                  className={`flex-1 px-3 py-2 rounded-xl border outline-none text-xs sm:text-sm ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
                 />
                 <button
                   type="submit"
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shrink-0"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shrink-0"
                 >
-                  <Plus size={16} /> Qo‘shish
+                  <Plus size={15} /> Qo‘shish
                 </button>
               </form>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                 {levels.map(lvl => (
-                  <div key={lvl.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+                  <div key={lvl.id} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
                     {editingLevelId === lvl.id ? (
-                      <div className="flex items-center gap-2 flex-1 mr-2">
+                      <div className="flex items-center gap-1.5 flex-1 mr-2">
                         <input
                           type="text"
                           value={editLevelName}
@@ -1347,7 +1346,7 @@ export default function App() {
                         </button>
                       </div>
                     ) : (
-                      <span className="text-sm font-semibold">{lvl.name}</span>
+                      <span className="text-xs sm:text-sm font-semibold">{lvl.name}</span>
                     )}
 
                     <div className="flex gap-1">
@@ -1356,14 +1355,14 @@ export default function App() {
                           onClick={() => { setEditingLevelId(lvl.id); setEditLevelName(lvl.name); }}
                           className="p-1 text-slate-400 hover:text-blue-500"
                         >
-                          <Edit2 size={14} />
+                          <Edit2 size={13} />
                         </button>
                       )}
                       <button 
                         onClick={() => handleDeleteLevel(lvl.id)}
                         className="p-1 text-slate-400 hover:text-rose-500"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
@@ -1372,24 +1371,22 @@ export default function App() {
             </div>
 
             {/* Filial Qo'shish */}
-            <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <h3 className="text-lg font-bold mb-2">Yangi Filial Ochish</h3>
-              <p className="text-xs text-slate-400 mb-4">Markazning yangi filialini qo‘shing.</p>
-
-              <form onSubmit={handleAddBranch} className="flex gap-3 max-w-md">
+            <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <h3 className="text-base sm:text-lg font-bold mb-2">Yangi Filial Ochish</h3>
+              <form onSubmit={handleAddBranch} className="flex gap-2 max-w-md mt-3">
                 <input
                   required
                   type="text"
-                  placeholder="Filial nomi (masalan: 3-Filial Sergeli)"
+                  placeholder="Filial nomi"
                   value={newBranchName}
                   onChange={(e) => setNewBranchName(e.target.value)}
-                  className={`flex-1 px-3 py-2 rounded-xl border outline-none text-sm ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
+                  className={`flex-1 px-3 py-2 rounded-xl border outline-none text-xs sm:text-sm ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
                 />
                 <button
                   type="submit"
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shrink-0"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shrink-0"
                 >
-                  <Plus size={16} /> Qo‘shish
+                  <Plus size={15} /> Qo‘shish
                 </button>
               </form>
             </div>
@@ -1400,9 +1397,9 @@ export default function App() {
 
       {/* UNIVERSAL QO'SHISH / TAHRIRLASH MODALI */}
       {modalType && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className={`w-full max-w-md p-6 rounded-2xl shadow-2xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'} max-h-[90vh] overflow-y-auto`}>
-            <h3 className="text-lg font-bold mb-4 capitalize">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className={`w-full max-w-md p-5 sm:p-6 rounded-2xl shadow-2xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'} max-h-[90vh] overflow-y-auto`}>
+            <h3 className="text-base sm:text-lg font-bold mb-4 capitalize">
               {isEditing ? 'Tahrirlash' : 'Yangi Qo‘shish'}: {modalType === 'student' ? 'O‘quvchi' : modalType === 'teacher' ? 'O‘qituvchi' : 'Guruh'}
             </h3>
 
@@ -1411,14 +1408,14 @@ export default function App() {
                 <>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">F.I.O</label>
-                    <input required type="text" value={modalData.full_name || ''} onChange={e => setModalData({...modalData, full_name: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none" />
+                    <input required type="text" value={modalData.full_name || ''} onChange={e => setModalData({...modalData, full_name: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Biriktirilgan Guruh</label>
                     <select 
                       value={modalData.group_id || groups[0]?.id} 
                       onChange={e => setModalData({...modalData, group_id: e.target.value})} 
-                      className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none font-medium"
+                      className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none font-medium text-xs sm:text-sm"
                     >
                       {groups.map(g => (
                         <option key={g.id} value={g.id}>
@@ -1429,15 +1426,15 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">O‘quvchi Telefoni</label>
-                    <input required type="text" value={modalData.phone || ''} onChange={e => setModalData({...modalData, phone: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none" />
+                    <input required type="text" value={modalData.phone || ''} onChange={e => setModalData({...modalData, phone: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Ota-onasi Telefoni</label>
-                    <input required type="text" value={modalData.parent_phone || ''} onChange={e => setModalData({...modalData, parent_phone: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none" />
+                    <input required type="text" value={modalData.parent_phone || ''} onChange={e => setModalData({...modalData, parent_phone: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Qarzdorlik summasi ({systemSettings.currency})</label>
-                    <input type="number" value={modalData.debt || 0} onChange={e => setModalData({...modalData, debt: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none" />
+                    <input type="number" value={modalData.debt || 0} onChange={e => setModalData({...modalData, debt: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                 </>
               )}
@@ -1446,19 +1443,19 @@ export default function App() {
                 <>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">F.I.O</label>
-                    <input required type="text" value={modalData.full_name || ''} onChange={e => setModalData({...modalData, full_name: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none" />
+                    <input required type="text" value={modalData.full_name || ''} onChange={e => setModalData({...modalData, full_name: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Dars beradigan fani / Yo‘nalishi</label>
-                    <input required type="text" value={modalData.subject || ''} onChange={e => setModalData({...modalData, subject: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none" />
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Fani / Yo‘nalishi</label>
+                    <input required type="text" value={modalData.subject || ''} onChange={e => setModalData({...modalData, subject: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Telefon Raqami</label>
-                    <input required type="text" value={modalData.phone || ''} onChange={e => setModalData({...modalData, phone: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none" />
+                    <input required type="text" value={modalData.phone || ''} onChange={e => setModalData({...modalData, phone: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Filial</label>
-                    <select value={modalData.branch_id || branches[0]?.id} onChange={e => setModalData({...modalData, branch_id: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none">
+                    <select value={modalData.branch_id || branches[0]?.id} onChange={e => setModalData({...modalData, branch_id: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm">
                       {branches.map(b => (
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
@@ -1471,14 +1468,14 @@ export default function App() {
                 <>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Guruh Nomi</label>
-                    <input required type="text" value={modalData.name || ''} onChange={e => setModalData({...modalData, name: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none" />
+                    <input required type="text" value={modalData.name || ''} onChange={e => setModalData({...modalData, name: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Guruh Darajasi (Level)</label>
                     <select 
                       value={modalData.level_id || levels[0]?.id} 
                       onChange={e => setModalData({...modalData, level_id: e.target.value})} 
-                      className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none font-medium"
+                      className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none font-medium text-xs sm:text-sm"
                     >
                       {levels.map(lvl => (
                         <option key={lvl.id} value={lvl.id}>{lvl.name}</option>
@@ -1486,11 +1483,11 @@ export default function App() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">O‘qituvchini Tanlang</label>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">O‘qituvchi</label>
                     <select 
                       value={modalData.teacher_id || teachers[0]?.id} 
                       onChange={e => setModalData({...modalData, teacher_id: e.target.value})} 
-                      className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none font-medium"
+                      className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none font-medium text-xs sm:text-sm"
                     >
                       {teachers.map(t => (
                         <option key={t.id} value={t.id}>{t.full_name} ({t.subject})</option>
@@ -1498,8 +1495,8 @@ export default function App() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Dars Kunlari (Bittalab tanlang):</label>
-                    <div className="grid grid-cols-4 gap-2">
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Dars Kunlari:</label>
+                    <div className="grid grid-cols-4 gap-1.5">
                       {WEEK_DAYS.map(day => {
                         const isChecked = (modalData.days || []).includes(day.id);
                         return (
@@ -1507,13 +1504,13 @@ export default function App() {
                             type="button"
                             key={day.id}
                             onClick={() => toggleDaySelection(day.id)}
-                            className={`px-2 py-1.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1 transition-all ${
+                            className={`px-1.5 py-1 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1 transition-all ${
                               isChecked 
-                                ? 'bg-blue-600 border-blue-600 text-white shadow-sm' 
-                                : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                ? 'bg-blue-600 border-blue-600 text-white' 
+                                : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                             }`}
                           >
-                            {isChecked && <Check size={12} />}
+                            {isChecked && <Check size={11} />}
                             <span>{day.id}</span>
                           </button>
                         );
@@ -1522,15 +1519,15 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Dars Vaqti</label>
-                    <input required type="text" placeholder="Masalan: 14:00 - 16:00" value={modalData.time || ''} onChange={e => setModalData({...modalData, time: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none" />
+                    <input required type="text" placeholder="14:00 - 16:00" value={modalData.time || ''} onChange={e => setModalData({...modalData, time: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Oylik To‘lov Miqdori ({systemSettings.currency})</label>
-                    <input required type="number" value={modalData.monthly_fee || 0} onChange={e => setModalData({...modalData, monthly_fee: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none" />
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Oylik To‘lov ({systemSettings.currency})</label>
+                    <input required type="number" value={modalData.monthly_fee || 0} onChange={e => setModalData({...modalData, monthly_fee: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Filial</label>
-                    <select value={modalData.branch_id || branches[0]?.id} onChange={e => setModalData({...modalData, branch_id: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none">
+                    <select value={modalData.branch_id || branches[0]?.id} onChange={e => setModalData({...modalData, branch_id: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm">
                       {branches.map(b => (
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
@@ -1539,9 +1536,9 @@ export default function App() {
                 </>
               )}
 
-              <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setModalType(null)} className="px-4 py-2 text-slate-400 hover:text-white text-sm">Bekor qilish</button>
-                <button type="submit" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold">Saqlash</button>
+              <div className="flex justify-end gap-2 pt-3">
+                <button type="button" onClick={() => setModalType(null)} className="px-3.5 py-2 text-slate-400 text-xs sm:text-sm">Bekor qilish</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold">Saqlash</button>
               </div>
             </form>
           </div>
@@ -1550,36 +1547,35 @@ export default function App() {
 
       {/* TO'LOV TASDIQLASH MODALI */}
       {paymentModalData && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className={`w-full max-w-md p-6 rounded-2xl shadow-2xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}>
-            <div className="flex items-center gap-3 text-blue-500 mb-4">
-              <AlertCircle size={24} />
-              <h3 className="text-lg font-bold">To‘lovni Tasdiqlash</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className={`w-full max-w-md p-5 sm:p-6 rounded-2xl shadow-2xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}>
+            <div className="flex items-center gap-2.5 text-blue-500 mb-4">
+              <AlertCircle size={22} />
+              <h3 className="text-base sm:text-lg font-bold">To‘lovni Qabul Qilish</h3>
             </div>
             
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
+            <div className="space-y-2.5 text-xs sm:text-sm">
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-700">
                 <span className="text-slate-400">O‘quvchi:</span>
                 <span className="font-semibold">{paymentModalData.student_name}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-700">
                 <span className="text-slate-400">Guruh:</span>
                 <span className="font-semibold">{paymentModalData.group_name}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-700">
                 <span className="text-slate-400">Summa:</span>
                 <span className="font-semibold text-emerald-500">{paymentModalData.monthly_fee?.toLocaleString()} {systemSettings.currency}</span>
               </div>
 
               <div className="py-2">
-                <label className="block text-slate-400 text-xs mb-2 font-medium">Qaysi davr uchun to‘lov qabul qilinmoqda?</label>
-                <div className="grid grid-cols-2 gap-3">
+                <label className="block text-slate-400 text-xs mb-1.5 font-medium">To‘lov davri:</label>
+                <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <span className="text-[11px] text-slate-400 block mb-1">Oy:</span>
                     <select
                       value={selectedMonth}
                       onChange={(e) => setSelectedMonth(e.target.value)}
-                      className={`w-full px-3 py-2 rounded-xl border outline-none font-semibold text-sm ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-100 border-slate-300'}`}
+                      className={`w-full px-3 py-2 rounded-xl border outline-none font-semibold text-xs sm:text-sm ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-100 border-slate-300'}`}
                     >
                       {MONTHS_LIST.map((m) => (
                         <option key={m} value={m}>{m}</option>
@@ -1588,11 +1584,10 @@ export default function App() {
                   </div>
 
                   <div>
-                    <span className="text-[11px] text-slate-400 block mb-1">Yil:</span>
                     <select
                       value={selectedYear}
                       onChange={(e) => setSelectedYear(Number(e.target.value))}
-                      className={`w-full px-3 py-2 rounded-xl border outline-none font-semibold text-sm ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-100 border-slate-300'}`}
+                      className={`w-full px-3 py-2 rounded-xl border outline-none font-semibold text-xs sm:text-sm ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-100 border-slate-300'}`}
                     >
                       {YEARS_LIST.map((y) => (
                         <option key={y} value={y}>{y}-yil</option>
@@ -1603,22 +1598,22 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 mt-6">
+            <div className="flex items-center justify-end gap-2.5 mt-5">
               <button
                 onClick={() => setPaymentModalData(null)}
-                className="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-sm font-medium"
+                className="px-3.5 py-2 rounded-xl text-slate-400 text-xs sm:text-sm font-medium"
               >
                 Bekor qilish
               </button>
               <button
                 onClick={() => {
                   setStudents(students.map(s => s.id === paymentModalData.student_id ? { ...s, debt: 0 } : s));
-                  alert(`To'lov ${selectedMonth} ${selectedYear}-yil uchun muvaffaqiyatli saqlandi!`);
+                  alert(`To'lov muvaffaqiyatli saqlandi!`);
                   setPaymentModalData(null);
                 }}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-500/20"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow"
               >
-                Tasdiqlash va Saqlash
+                Tasdiqlash
               </button>
             </div>
           </div>
