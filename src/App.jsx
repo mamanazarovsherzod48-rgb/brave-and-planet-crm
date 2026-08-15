@@ -282,7 +282,7 @@ export default function App() {
     }
   };
 
-  const handleBulkImportStudents = async (e) => {
+const handleBulkImportStudents = async (e) => {
     e.preventDefault();
     if (!docxGroupId) {
       alert("Iltimos, o'quvchilar qo'shiladigan guruhni tanlang!");
@@ -294,42 +294,46 @@ export default function App() {
     }
 
     const targetGroup = groups.find(g => g.id === Number(docxGroupId));
-    const lines = docxTextData.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    // Yopishib ketgan so'z va raqamlarni avtomatik ajratish (Pre-processing)
+    let rawText = docxTextData
+      // Raqamdan keyin darhol harf kelgan bo'lsa yangi qatorga tushirish (masalan: 9485Dilshodov -> 9485 \n Dilshodov)
+      .replace(/(\d{2,})([A-ZА-ЯЁҒҚҲЎ])/g, '$1\n$2')
+      // Harfdan keyin darhol raqam yopishgan bo'lsa ajratish (masalan: Бегубор945959989 -> Бегубор 945959989)
+      .replace(/([a-zA-Zа-яА-ЯёЁғқҳўҒҚҲЎ])(\d{9})/g, '$1 $2');
+
+    const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     const newStudentsToInsert = [];
 
-    // Telefon raqamlarini aniqlash regexi (masalan +998901234567, 90 123-45-67, 901234567)
+    // Telefon raqamlarini qidirish
     const phoneRegex = /(?:\+?998[\s-]?)?\(?\d{2}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{9}\b/g;
 
     lines.forEach((line, index) => {
-      // 1. Qatordagi barcha telefon raqamlarni topamiz
       const foundPhones = line.match(phoneRegex) || [];
       
-      // Raqamlarni tozalab +998 formatiga keltiramiz
       const cleanPhones = foundPhones.map(p => {
         let num = p.replace(/\D/g, '');
         if (num.length === 9) num = '998' + num;
         return num.startsWith('998') ? '+' + num : num;
       });
 
-      // 2. Qatordan raqamlarni olib tashlab faqat Ism-Familiyani ajratamiz
       let namePart = line;
       foundPhones.forEach(p => {
         namePart = namePart.replace(p, '');
       });
 
-      // Raqamlar, qavslar, tartib raqamlarini tozalash (masalan: "1. Aliyev Vali - " -> "Aliyev Vali")
       namePart = namePart
         .replace(/^\d+[\.\)\-\s]+/, '')
         .replace(/[\,\;\:\-\|\/]+/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 
+      if (!namePart && cleanPhones.length === 0) return;
+
       const fullName = namePart || `O'quvchi ${index + 1}`;
-      
       let studentPhone = "-";
       let parentPhone = "-";
 
-      // 3. Telefonlarni taqsimlash mantiqi
       if (cleanPhones.length >= 2) {
         studentPhone = cleanPhones[0];
         parentPhone = cleanPhones[1];
@@ -358,7 +362,7 @@ export default function App() {
     if (newStudentsToInsert.length > 0) {
       setStudents(prev => [...prev, ...newStudentsToInsert]);
       await supabase.from('students').insert(newStudentsToInsert);
-      alert(`Muvaffaqiyatli! ${newStudentsToInsert.length} ta o'quvchi aniqlandi va guruhga qo'shildi.`);
+      alert(`Muvaffaqiyatli! ${newStudentsToInsert.length} ta o'quvchi bazaga kiritildi.`);
       setIsDocxModalOpen(false);
       setDocxTextData('');
     }
