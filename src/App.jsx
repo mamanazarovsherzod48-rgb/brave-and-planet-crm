@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, Users, GraduationCap, CheckSquare, 
   CreditCard, Settings, Moon, Sun, Edit2, Trash2, Plus, Check, Send, 
@@ -24,6 +24,40 @@ const MONTHS_LIST = [
 const currentYear = new Date().getFullYear();
 const YEARS_LIST = Array.from({ length: 8 }, (_, i) => currentYear - 2 + i);
 
+// Boshlang'ich shablon ma'lumotlar
+const INITIAL_BRANCHES = [
+  { id: 1, name: "1-Filial (Markaziy)" },
+  { id: 2, name: "2-Filial (Gʻarbiy)" }
+];
+
+const INITIAL_LEVELS = [
+  { id: 1, name: "Beginner (A1)" },
+  { id: 2, name: "Elementary (A2)" },
+  { id: 3, name: "Intermediate (B1)" },
+  { id: 4, name: "Upper-Intermediate (B2)" },
+  { id: 5, name: "Advanced / IELTS" }
+];
+
+const INITIAL_TEACHERS = [
+  { id: 1, branch_id: 1, full_name: "Bobur Usmonov", subject: "IELTS & General English", phone: "+998901112233" },
+  { id: 2, branch_id: 2, full_name: "Zilola Ergasheva", subject: "Kids English & B1", phone: "+998935556677" },
+  { id: 3, branch_id: 1, full_name: "Sanjar Qodirov", subject: "Web Development", phone: "+998978889900" }
+];
+
+const INITIAL_GROUPS = [
+  { id: 1, branch_id: 1, teacher_id: 1, level_id: 5, name: "IELTS Intensive", days: ["Du", "Chor", "Ju"], time: "14:00 - 16:00", monthly_fee: 450000 },
+  { id: 2, branch_id: 2, teacher_id: 2, level_id: 3, name: "General English B1", days: ["Se", "Pay", "Shan"], time: "10:00 - 12:00", monthly_fee: 400000 },
+  { id: 3, branch_id: 1, teacher_id: 3, level_id: 4, name: "Front-end React", days: ["Du", "Chor", "Ju"], time: "18:00 - 20:00", monthly_fee: 600000 },
+  { id: 4, branch_id: 1, teacher_id: 1, level_id: 2, name: "Grammar Starter", days: ["Se", "Pay", "Shan"], time: "16:00 - 18:00", monthly_fee: 380000 }
+];
+
+const INITIAL_STUDENTS = [
+  { id: 1, branch_id: 1, group_id: 1, full_name: "Aziz Rahimov", phone: "+998901234567", parent_phone: "+998909876543", debt: 450000, joined_date: "2026-01-10" },
+  { id: 2, branch_id: 1, group_id: 1, full_name: "Madina Aliyeva", phone: "+998911112233", parent_phone: "+998919998877", debt: 0, joined_date: "2026-01-15" },
+  { id: 3, branch_id: 2, group_id: 2, full_name: "Javohir Toshmatov", phone: "+998934445566", parent_phone: "+998938887766", debt: 400000, joined_date: "2026-02-01" },
+  { id: 4, branch_id: 1, group_id: 3, full_name: "Rustam Karimov", phone: "+998941231122", parent_phone: "+998945554433", debt: 600000, joined_date: "2026-02-10" }
+];
+
 export default function App() {
   // Autentifikatsiya holati
   const [currentUser, setCurrentUser] = useState(() => {
@@ -37,52 +71,72 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState('profile');
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('eduflow_dark') === 'true';
+  });
   const [selectedBranch, setSelectedBranch] = useState('ALL');
 
-  // Filiallar
-  const [branches, setBranches] = useState([
-    { id: 1, name: "1-Filial (Markaziy)" },
-    { id: 2, name: "2-Filial (Gʻarbiy)" }
-  ]);
+  // Doimiy saqlanuvchi holatlar (Local Storage)
+  const [branches, setBranches] = useState(() => {
+    const saved = localStorage.getItem('eduflow_branches');
+    return saved ? JSON.parse(saved) : INITIAL_BRANCHES;
+  });
   const [editingBranchId, setEditingBranchId] = useState(null);
   const [editBranchName, setEditBranchName] = useState('');
   const [newBranchName, setNewBranchName] = useState('');
 
-  // Dinamik Guruh Darajalari
-  const [levels, setLevels] = useState([
-    { id: 1, name: "Beginner (A1)" },
-    { id: 2, name: "Elementary (A2)" },
-    { id: 3, name: "Intermediate (B1)" },
-    { id: 4, name: "Upper-Intermediate (B2)" },
-    { id: 5, name: "Advanced / IELTS" }
-  ]);
+  const [levels, setLevels] = useState(() => {
+    const saved = localStorage.getItem('eduflow_levels');
+    return saved ? JSON.parse(saved) : INITIAL_LEVELS;
+  });
   const [newLevelName, setNewLevelName] = useState('');
   const [editingLevelId, setEditingLevelId] = useState(null);
   const [editLevelName, setEditLevelName] = useState('');
 
-  // O'qituvchilar
-  const [teachers, setTeachers] = useState([
-    { id: 1, branch_id: 1, full_name: "Bobur Usmonov", subject: "IELTS & General English", phone: "+998901112233" },
-    { id: 2, branch_id: 2, full_name: "Zilola Ergasheva", subject: "Kids English & B1", phone: "+998935556677" },
-    { id: 3, branch_id: 1, full_name: "Sanjar Qodirov", subject: "Web Development", phone: "+998978889900" }
-  ]);
+  const [teachers, setTeachers] = useState(() => {
+    const saved = localStorage.getItem('eduflow_teachers');
+    return saved ? JSON.parse(saved) : INITIAL_TEACHERS;
+  });
 
-  // Guruhlar
-  const [groups, setGroups] = useState([
-    { id: 1, branch_id: 1, teacher_id: 1, level_id: 5, name: "IELTS Intensive", days: ["Du", "Chor", "Ju"], time: "14:00 - 16:00", monthly_fee: 450000 },
-    { id: 2, branch_id: 2, teacher_id: 2, level_id: 3, name: "General English B1", days: ["Se", "Pay", "Shan"], time: "10:00 - 12:00", monthly_fee: 400000 },
-    { id: 3, branch_id: 1, teacher_id: 3, level_id: 4, name: "Front-end React", days: ["Du", "Chor", "Ju"], time: "18:00 - 20:00", monthly_fee: 600000 },
-    { id: 4, branch_id: 1, teacher_id: 1, level_id: 2, name: "Grammar Starter", days: ["Se", "Pay", "Shan"], time: "16:00 - 18:00", monthly_fee: 380000 }
-  ]);
+  const [groups, setGroups] = useState(() => {
+    const saved = localStorage.getItem('eduflow_groups');
+    return saved ? JSON.parse(saved) : INITIAL_GROUPS;
+  });
 
-  // O'quvchilar
-  const [students, setStudents] = useState([
-    { id: 1, branch_id: 1, group_id: 1, full_name: "Aziz Rahimov", phone: "+998901234567", parent_phone: "+998909876543", debt: 450000, joined_date: "2026-01-10" },
-    { id: 2, branch_id: 1, group_id: 1, full_name: "Madina Aliyeva", phone: "+998911112233", parent_phone: "+998919998877", debt: 0, joined_date: "2026-01-15" },
-    { id: 3, branch_id: 2, group_id: 2, full_name: "Javohir Toshmatov", phone: "+998934445566", parent_phone: "+998938887766", debt: 400000, joined_date: "2026-02-01" },
-    { id: 4, branch_id: 1, group_id: 3, full_name: "Rustam Karimov", phone: "+998941231122", parent_phone: "+998945554433", debt: 600000, joined_date: "2026-02-10" }
-  ]);
+  const [students, setStudents] = useState(() => {
+    const saved = localStorage.getItem('eduflow_students');
+    return saved ? JSON.parse(saved) : INITIAL_STUDENTS;
+  });
+
+  const [attendance, setAttendance] = useState(() => {
+    const saved = localStorage.getItem('eduflow_attendance');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [systemSettings, setSystemSettings] = useState(() => {
+    const saved = localStorage.getItem('eduflow_settings');
+    return saved ? JSON.parse(saved) : {
+      centerName: "EduFlow O‘quv Markazi",
+      currency: "so'm",
+      smsReminderDay: 5,
+    };
+  });
+
+  const [smsTemplate, setSmsTemplate] = useState(() => {
+    const saved = localStorage.getItem('eduflow_sms_template');
+    return saved ? saved : "Hurmatli ota-ona! {ism}ning \"{guruh}\" kursi bo'yicha to'lov muddati keldi. Oylik to'lov summasi: {summa}. Iltimos, o'z vaqtida to'lovni amalga oshirishingizni so'raymiz.";
+  });
+
+  // O'zgarishlarni LocalStorage'ga yozib borish
+  useEffect(() => { localStorage.setItem('eduflow_branches', JSON.stringify(branches)); }, [branches]);
+  useEffect(() => { localStorage.setItem('eduflow_levels', JSON.stringify(levels)); }, [levels]);
+  useEffect(() => { localStorage.setItem('eduflow_teachers', JSON.stringify(teachers)); }, [teachers]);
+  useEffect(() => { localStorage.setItem('eduflow_groups', JSON.stringify(groups)); }, [groups]);
+  useEffect(() => { localStorage.setItem('eduflow_students', JSON.stringify(students)); }, [students]);
+  useEffect(() => { localStorage.setItem('eduflow_attendance', JSON.stringify(attendance)); }, [attendance]);
+  useEffect(() => { localStorage.setItem('eduflow_settings', JSON.stringify(systemSettings)); }, [systemSettings]);
+  useEffect(() => { localStorage.setItem('eduflow_sms_template', smsTemplate); }, [smsTemplate]);
+  useEffect(() => { localStorage.setItem('eduflow_dark', darkMode); }, [darkMode]);
 
   // Guruh qidirish filtrlari
   const [finderBranch, setFinderBranch] = useState('ALL');
@@ -90,24 +144,13 @@ export default function App() {
   const [finderDay, setFinderDay] = useState('ALL');
   const [finderSearch, setFinderSearch] = useState('');
 
-  // Tizim sozlamalari
-  const [systemSettings, setSystemSettings] = useState({
-    centerName: "EduFlow O‘quv Markazi",
-    currency: "so'm",
-    smsReminderDay: 5,
-  });
-
   // Davomat holati
-  const [attendanceGroupId, setAttendanceGroupId] = useState(1);
-  const [attendance, setAttendance] = useState({});
+  const [attendanceGroupId, setAttendanceGroupId] = useState(() => groups[0]?.id || 1);
 
   // To'lov modali
   const [paymentModalData, setPaymentModalData] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(MONTHS_LIST[new Date().getMonth()]);
   const [selectedYear, setSelectedYear] = useState(currentYear);
-
-  // SMS Shablon
-  const [smsTemplate, setSmsTemplate] = useState("Hurmatli ota-ona! {ism}ning \"{guruh}\" kursi bo'yicha to'lov muddati keldi. Oylik to'lov summasi: {summa}. Iltimos, o'z vaqtida to'lovni amalga oshirishingizni so'raymiz.");
 
   // Modallar holati
   const [modalType, setModalType] = useState(null);
@@ -421,7 +464,7 @@ export default function App() {
         />
       )}
 
-      {/* Chap Menyu (Sidebar) - Mobilda Drawer, Katta ekranda doimiy */}
+      {/* Chap Menyu (Sidebar) */}
       <aside className={`
         w-72 lg:w-64 border-r p-5 flex flex-col justify-between shrink-0 fixed lg:static inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -436,7 +479,6 @@ export default function App() {
                 <span className="text-xs text-blue-500 font-medium">CRM Tizimi</span>
               </div>
             </div>
-            {/* Mobilda yopish tugmasi */}
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
               className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
@@ -511,7 +553,6 @@ export default function App() {
       {/* Asosiy qism */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl w-full">
         
-        {/* Header - Mobil Gamburger Tugmasi bilan */}
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <button
@@ -545,11 +586,7 @@ export default function App() {
         {activeTab === 'profile' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-              
-              <div 
-                onClick={() => setActiveTab('students')}
-                className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}
-              >
+              <div onClick={() => setActiveTab('students')} className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}>
                 <div className="flex justify-between items-center text-slate-500 font-medium">
                   <span className="text-xs sm:text-sm">O‘quvchilar</span>
                   <GraduationCap size={18} className="text-blue-500" />
@@ -558,10 +595,7 @@ export default function App() {
                 <span className="text-[10px] sm:text-[11px] text-slate-400 mt-2 block">Bo‘limga o‘tish →</span>
               </div>
 
-              <div 
-                onClick={() => setActiveTab('teachers')}
-                className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}
-              >
+              <div onClick={() => setActiveTab('teachers')} className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}>
                 <div className="flex justify-between items-center text-slate-500 font-medium">
                   <span className="text-xs sm:text-sm">O‘qituvchilar</span>
                   <UserCheck size={18} className="text-purple-500" />
@@ -570,10 +604,7 @@ export default function App() {
                 <span className="text-[10px] sm:text-[11px] text-slate-400 mt-2 block">Bo‘limga o‘tish →</span>
               </div>
 
-              <div 
-                onClick={() => setActiveTab('groups')}
-                className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}
-              >
+              <div onClick={() => setActiveTab('groups')} className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}>
                 <div className="flex justify-between items-center text-slate-500 font-medium">
                   <span className="text-xs sm:text-sm">Guruhlar</span>
                   <BookOpen size={18} className="text-emerald-500" />
@@ -582,23 +613,16 @@ export default function App() {
                 <span className="text-[10px] sm:text-[11px] text-slate-400 mt-2 block">Bo‘limga o‘tish →</span>
               </div>
 
-              <div 
-                onClick={() => setActiveTab('payments')}
-                className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}
-              >
+              <div onClick={() => setActiveTab('payments')} className={`p-4 sm:p-6 rounded-2xl border cursor-pointer transform hover:-translate-y-1 transition-all ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 hover:shadow-lg'}`}>
                 <div className="flex justify-between items-center text-slate-500 font-medium">
                   <span className="text-xs sm:text-sm">Qarzdorlik</span>
                   <CreditCard size={18} className="text-rose-500" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold mt-2 text-rose-500">
-                  {filteredStudents.filter(s => s.debt > 0).length} ta
-                </p>
+                <p className="text-2xl sm:text-3xl font-bold mt-2 text-rose-500">{filteredStudents.filter(s => s.debt > 0).length} ta</p>
                 <span className="text-[10px] sm:text-[11px] text-slate-400 mt-2 block">Bo‘limga o‘tish →</span>
               </div>
-
             </div>
 
-            {/* Filiallar */}
             <div className={`p-5 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <h3 className="text-base sm:text-lg font-bold mb-4">Filiallar Ro‘yxati</h3>
               <div className="space-y-3">
@@ -652,11 +676,7 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Filial</label>
-                  <select 
-                    value={finderBranch} 
-                    onChange={e => setFinderBranch(e.target.value)}
-                    className={`w-full px-3 py-2 rounded-xl border text-sm outline-none font-medium ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
-                  >
+                  <select value={finderBranch} onChange={e => setFinderBranch(e.target.value)} className={`w-full px-3 py-2 rounded-xl border text-sm outline-none font-medium ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}>
                     <option value="ALL">Barcha Filiallar</option>
                     {branches.map(b => (
                       <option key={b.id} value={b.id}>{b.name}</option>
@@ -666,11 +686,7 @@ export default function App() {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Kurs Darajasi</label>
-                  <select 
-                    value={finderLevel} 
-                    onChange={e => setFinderLevel(e.target.value)}
-                    className={`w-full px-3 py-2 rounded-xl border text-sm outline-none font-medium ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
-                  >
+                  <select value={finderLevel} onChange={e => setFinderLevel(e.target.value)} className={`w-full px-3 py-2 rounded-xl border text-sm outline-none font-medium ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}>
                     <option value="ALL">Barcha Darajalar</option>
                     {levels.map(l => (
                       <option key={l.id} value={l.id}>{l.name}</option>
@@ -680,11 +696,7 @@ export default function App() {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Qulay Hafta Kuni</label>
-                  <select 
-                    value={finderDay} 
-                    onChange={e => setFinderDay(e.target.value)}
-                    className={`w-full px-3 py-2 rounded-xl border text-sm outline-none font-medium ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
-                  >
+                  <select value={finderDay} onChange={e => setFinderDay(e.target.value)} className={`w-full px-3 py-2 rounded-xl border text-sm outline-none font-medium ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}>
                     <option value="ALL">Istalgan kun</option>
                     {WEEK_DAYS.map(d => (
                       <option key={d.id} value={d.id}>{d.label} ({d.id})</option>
@@ -707,7 +719,6 @@ export default function App() {
 
             <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <h3 className="font-bold text-sm sm:text-base mb-4">Mos Keladigan Guruhlar ({searchMatchedGroups.length} ta)</h3>
-
               {searchMatchedGroups.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {searchMatchedGroups.map(g => {
@@ -1188,7 +1199,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Jonli SMS Ko'rinishi */}
             <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <div className="flex items-center gap-2 mb-4 text-emerald-600 font-bold text-sm sm:text-base">
                 <Eye size={18} />
