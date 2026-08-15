@@ -150,7 +150,7 @@ export default function App() {
   // Login qilish funksiyasi
   const handleLoginSubmit = (e) => {
     e.preventDefault();
-    if (loginForm.username === 'admin' && loginForm.password === 'admin123') {
+    if (loginForm.username === 'admin' && loginForm.password === 'manager2026') {
       const authUser = {
         id: 1,
         username: 'admin',
