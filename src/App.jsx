@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { 
   Building2, Users, GraduationCap, CheckSquare, 
   CreditCard, Settings, Moon, Sun, Edit2, Trash2, Plus, Check, Send, 
   AlertCircle, BookOpen, UserCheck, MessageSquare, Download, Copy, Save, 
-  ChevronRight, Search, Filter, Layers, Eye, LogOut, Lock, User, Menu, X
+  ChevronRight, Search, Filter, Layers, Eye, LogOut, Lock, User, Menu, X, Loader2
 } from 'lucide-react';
+
+// SUPABASE SOZLAMALARI
+const SUPABASE_URL = "https://qvtthgoeythyqdpslsqh.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Nopc4YysCA65DMZ-_HNlnw_qyfMjlPG";
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const WEEK_DAYS = [
   { id: 'Du', label: 'Dushanba' },
@@ -24,40 +30,6 @@ const MONTHS_LIST = [
 const currentYear = new Date().getFullYear();
 const YEARS_LIST = Array.from({ length: 8 }, (_, i) => currentYear - 2 + i);
 
-// Boshlang'ich shablon ma'lumotlar
-const INITIAL_BRANCHES = [
-  { id: 1, name: "1-Filial (Markaziy)" },
-  { id: 2, name: "2-Filial (Gʻarbiy)" }
-];
-
-const INITIAL_LEVELS = [
-  { id: 1, name: "Beginner (A1)" },
-  { id: 2, name: "Elementary (A2)" },
-  { id: 3, name: "Intermediate (B1)" },
-  { id: 4, name: "Upper-Intermediate (B2)" },
-  { id: 5, name: "Advanced / IELTS" }
-];
-
-const INITIAL_TEACHERS = [
-  { id: 1, branch_id: 1, full_name: "Bobur Usmonov", subject: "IELTS & General English", phone: "+998901112233" },
-  { id: 2, branch_id: 2, full_name: "Zilola Ergasheva", subject: "Kids English & B1", phone: "+998935556677" },
-  { id: 3, branch_id: 1, full_name: "Sanjar Qodirov", subject: "Web Development", phone: "+998978889900" }
-];
-
-const INITIAL_GROUPS = [
-  { id: 1, branch_id: 1, teacher_id: 1, level_id: 5, name: "IELTS Intensive", days: ["Du", "Chor", "Ju"], time: "14:00 - 16:00", monthly_fee: 450000 },
-  { id: 2, branch_id: 2, teacher_id: 2, level_id: 3, name: "General English B1", days: ["Se", "Pay", "Shan"], time: "10:00 - 12:00", monthly_fee: 400000 },
-  { id: 3, branch_id: 1, teacher_id: 3, level_id: 4, name: "Front-end React", days: ["Du", "Chor", "Ju"], time: "18:00 - 20:00", monthly_fee: 600000 },
-  { id: 4, branch_id: 1, teacher_id: 1, level_id: 2, name: "Grammar Starter", days: ["Se", "Pay", "Shan"], time: "16:00 - 18:00", monthly_fee: 380000 }
-];
-
-const INITIAL_STUDENTS = [
-  { id: 1, branch_id: 1, group_id: 1, full_name: "Aziz Rahimov", phone: "+998901234567", parent_phone: "+998909876543", debt: 450000, joined_date: "2026-01-10" },
-  { id: 2, branch_id: 1, group_id: 1, full_name: "Madina Aliyeva", phone: "+998911112233", parent_phone: "+998919998877", debt: 0, joined_date: "2026-01-15" },
-  { id: 3, branch_id: 2, group_id: 2, full_name: "Javohir Toshmatov", phone: "+998934445566", parent_phone: "+998938887766", debt: 400000, joined_date: "2026-02-01" },
-  { id: 4, branch_id: 1, group_id: 3, full_name: "Rustam Karimov", phone: "+998941231122", parent_phone: "+998945554433", debt: 600000, joined_date: "2026-02-10" }
-];
-
 export default function App() {
   // Autentifikatsiya holati
   const [currentUser, setCurrentUser] = useState(() => {
@@ -69,74 +41,40 @@ export default function App() {
 
   // Mobil menyu holati
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState('profile');
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('eduflow_dark') === 'true';
-  });
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('eduflow_dark') === 'true');
   const [selectedBranch, setSelectedBranch] = useState('ALL');
 
-  // Doimiy saqlanuvchi holatlar (Local Storage)
-  const [branches, setBranches] = useState(() => {
-    const saved = localStorage.getItem('eduflow_branches');
-    return saved ? JSON.parse(saved) : INITIAL_BRANCHES;
-  });
+  // Supabase Baza Ma'lumotlari
+  const [branches, setBranches] = useState([]);
+  const [levels, setLevels] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [students, setStudents] = useState([]);
+  
   const [editingBranchId, setEditingBranchId] = useState(null);
   const [editBranchName, setEditBranchName] = useState('');
   const [newBranchName, setNewBranchName] = useState('');
 
-  const [levels, setLevels] = useState(() => {
-    const saved = localStorage.getItem('eduflow_levels');
-    return saved ? JSON.parse(saved) : INITIAL_LEVELS;
-  });
   const [newLevelName, setNewLevelName] = useState('');
   const [editingLevelId, setEditingLevelId] = useState(null);
   const [editLevelName, setEditLevelName] = useState('');
 
-  const [teachers, setTeachers] = useState(() => {
-    const saved = localStorage.getItem('eduflow_teachers');
-    return saved ? JSON.parse(saved) : INITIAL_TEACHERS;
-  });
-
-  const [groups, setGroups] = useState(() => {
-    const saved = localStorage.getItem('eduflow_groups');
-    return saved ? JSON.parse(saved) : INITIAL_GROUPS;
-  });
-
-  const [students, setStudents] = useState(() => {
-    const saved = localStorage.getItem('eduflow_students');
-    return saved ? JSON.parse(saved) : INITIAL_STUDENTS;
-  });
-
+  // Davomat va Sozlamalar
   const [attendance, setAttendance] = useState(() => {
     const saved = localStorage.getItem('eduflow_attendance');
     return saved ? JSON.parse(saved) : {};
   });
 
-  const [systemSettings, setSystemSettings] = useState(() => {
-    const saved = localStorage.getItem('eduflow_settings');
-    return saved ? JSON.parse(saved) : {
-      centerName: "EduFlow O‘quv Markazi",
-      currency: "so'm",
-      smsReminderDay: 5,
-    };
+  const [systemSettings, setSystemSettings] = useState({
+    centerName: "EduFlow O‘quv Markazi",
+    currency: "so'm",
+    smsReminderDay: 5,
   });
 
-  const [smsTemplate, setSmsTemplate] = useState(() => {
-    const saved = localStorage.getItem('eduflow_sms_template');
-    return saved ? saved : "Hurmatli ota-ona! {ism}ning \"{guruh}\" kursi bo'yicha to'lov muddati keldi. Oylik to'lov summasi: {summa}. Iltimos, o'z vaqtida to'lovni amalga oshirishingizni so'raymiz.";
-  });
-
-  // O'zgarishlarni LocalStorage'ga yozib borish
-  useEffect(() => { localStorage.setItem('eduflow_branches', JSON.stringify(branches)); }, [branches]);
-  useEffect(() => { localStorage.setItem('eduflow_levels', JSON.stringify(levels)); }, [levels]);
-  useEffect(() => { localStorage.setItem('eduflow_teachers', JSON.stringify(teachers)); }, [teachers]);
-  useEffect(() => { localStorage.setItem('eduflow_groups', JSON.stringify(groups)); }, [groups]);
-  useEffect(() => { localStorage.setItem('eduflow_students', JSON.stringify(students)); }, [students]);
-  useEffect(() => { localStorage.setItem('eduflow_attendance', JSON.stringify(attendance)); }, [attendance]);
-  useEffect(() => { localStorage.setItem('eduflow_settings', JSON.stringify(systemSettings)); }, [systemSettings]);
-  useEffect(() => { localStorage.setItem('eduflow_sms_template', smsTemplate); }, [smsTemplate]);
-  useEffect(() => { localStorage.setItem('eduflow_dark', darkMode); }, [darkMode]);
+  const [smsTemplate, setSmsTemplate] = useState("Hurmatli ota-ona! {ism}ning \"{guruh}\" kursi bo'yicha to'lov muddati keldi. Oylik to'lov summasi: {summa}. Iltimos, o'z vaqtida to'lovni amalga oshirishingizni so'raymiz.");
 
   // Guruh qidirish filtrlari
   const [finderBranch, setFinderBranch] = useState('ALL');
@@ -145,7 +83,7 @@ export default function App() {
   const [finderSearch, setFinderSearch] = useState('');
 
   // Davomat holati
-  const [attendanceGroupId, setAttendanceGroupId] = useState(() => groups[0]?.id || 1);
+  const [attendanceGroupId, setAttendanceGroupId] = useState(null);
 
   // To'lov modali
   const [paymentModalData, setPaymentModalData] = useState(null);
@@ -156,6 +94,58 @@ export default function App() {
   const [modalType, setModalType] = useState(null);
   const [modalData, setModalData] = useState({});
   const [isEditing, setIsEditing] = useState(false);
+
+  // ---------------------------------------------------------
+  // BAZADAN MA'LUMOTLARNI YUKLAB OLISH (FETCH DATA)
+  // ---------------------------------------------------------
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      const [brRes, lvlRes, tchRes, grpRes, stdRes, setRes] = await Promise.all([
+        supabase.from('branches').select('*').order('id', { ascending: true }),
+        supabase.from('levels').select('*').order('id', { ascending: true }),
+        supabase.from('teachers').select('*').order('id', { ascending: true }),
+        supabase.from('groups').select('*').order('id', { ascending: true }),
+        supabase.from('students').select('*').order('id', { ascending: true }),
+        supabase.from('system_settings').select('*').single()
+      ]);
+
+      if (brRes.data) setBranches(brRes.data);
+      if (lvlRes.data) setLevels(lvlRes.data);
+      if (tchRes.data) setTeachers(tchRes.data);
+      if (grpRes.data) {
+        setGroups(grpRes.data);
+        if (grpRes.data.length > 0 && !attendanceGroupId) {
+          setAttendanceGroupId(grpRes.data[0].id);
+        }
+      }
+      if (stdRes.data) setStudents(stdRes.data);
+      if (setRes.data) {
+        setSystemSettings({
+          centerName: setRes.data.center_name || "EduFlow O‘quv Markazi",
+          currency: setRes.data.currency || "so'm",
+          smsReminderDay: setRes.data.sms_reminder_day || 5
+        });
+        if (setRes.data.sms_template) setSmsTemplate(setRes.data.sms_template);
+      }
+    } catch (err) {
+      console.error("Ma'lumotlarni yuklashda xatolik:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('eduflow_dark', darkMode);
+  }, [darkMode]);
+
+  useEffect(() => {
+    localStorage.setItem('eduflow_attendance', JSON.stringify(attendance));
+  }, [attendance]);
 
   // Login qilish funksiyasi
   const handleLoginSubmit = (e) => {
@@ -188,11 +178,11 @@ export default function App() {
     ? students 
     : students.filter(s => s.branch_id === parseInt(selectedBranch));
 
-  const filteredGroups = selectedBranch === 'ALL'
+  const filteredGroups = selectedBranch === 'ALL' 
     ? groups 
     : groups.filter(g => g.branch_id === parseInt(selectedBranch));
 
-  const filteredTeachers = selectedBranch === 'ALL'
+  const filteredTeachers = selectedBranch === 'ALL' 
     ? teachers 
     : teachers.filter(t => t.branch_id === parseInt(selectedBranch));
 
@@ -202,9 +192,9 @@ export default function App() {
   const searchMatchedGroups = groups.filter(g => {
     const matchBranch = finderBranch === 'ALL' || g.branch_id === Number(finderBranch);
     const matchLevel = finderLevel === 'ALL' || g.level_id === Number(finderLevel);
-    const matchDay = finderDay === 'ALL' || g.days?.includes(finderDay);
-    const matchText = g.name.toLowerCase().includes(finderSearch.toLowerCase()) || 
-                      teachers.find(t => t.id === g.teacher_id)?.full_name.toLowerCase().includes(finderSearch.toLowerCase());
+    const matchDay = finderDay === 'ALL' || (g.days && g.days.includes(finderDay));
+    const matchText = g.name?.toLowerCase().includes(finderSearch.toLowerCase()) || 
+                      teachers.find(t => t.id === g.teacher_id)?.full_name?.toLowerCase().includes(finderSearch.toLowerCase());
     return matchBranch && matchLevel && matchDay && matchText;
   });
 
@@ -235,103 +225,154 @@ export default function App() {
     setAttendance(prev => ({ ...prev, [key]: status }));
   };
 
-  const handleDeleteStudent = (id) => {
-    if (confirm("Haqiqatan ham bu o'quvchini o'chirmoqchimisiz?")) {
-      setStudents(students.filter(s => s.id !== id));
-    }
-  };
-
-  const handleDeleteTeacher = (id) => {
-    if (confirm("Haqiqatan ham bu o'qituvchini o'chirmoqchimisiz?")) {
-      setTeachers(teachers.filter(t => t.id !== id));
-    }
-  };
-
-  const handleDeleteGroup = (id) => {
-    if (confirm("Haqiqatan ham bu guruhni o'chirmoqchimisiz?")) {
-      setGroups(groups.filter(g => g.id !== id));
-    }
-  };
-
-  const handleAddBranch = (e) => {
+  // ---------------------------------------------------------
+  // SUPABASE BAZA BILAN ISHLASH (CRUD)
+  // ---------------------------------------------------------
+  const handleAddBranch = async (e) => {
     e.preventDefault();
     if (!newBranchName.trim()) return;
-    setBranches([...branches, { id: Date.now(), name: newBranchName }]);
+    const newId = Date.now();
+    const newObj = { id: newId, name: newBranchName };
+    setBranches([...branches, newObj]);
     setNewBranchName('');
-    alert("Yangi filial muvaffaqiyatli qo'shildi!");
+    await supabase.from('branches').insert([newObj]);
   };
 
-  const handleAddLevel = (e) => {
+  const handleEditBranch = async (id) => {
+    setBranches(branches.map(b => b.id === id ? { ...b, name: editBranchName } : b));
+    setEditingBranchId(null);
+    await supabase.from('branches').update({ name: editBranchName }).eq('id', id);
+  };
+
+  const handleAddLevel = async (e) => {
     e.preventDefault();
     if (!newLevelName.trim()) return;
-    setLevels([...levels, { id: Date.now(), name: newLevelName }]);
+    const newId = Date.now();
+    const newObj = { id: newId, name: newLevelName };
+    setLevels([...levels, newObj]);
     setNewLevelName('');
+    await supabase.from('levels').insert([newObj]);
   };
 
-  const handleDeleteLevel = (id) => {
+  const handleEditLevel = async (id) => {
+    setLevels(levels.map(l => l.id === id ? { ...l, name: editLevelName } : l));
+    setEditingLevelId(null);
+    await supabase.from('levels').update({ name: editLevelName }).eq('id', id);
+  };
+
+  const handleDeleteLevel = async (id) => {
     if (confirm("Bu darajani o'chirmoqchimisiz?")) {
       setLevels(levels.filter(l => l.id !== id));
+      await supabase.from('levels').delete().eq('id', id);
     }
   };
 
-  const handleOpenGroupSettings = (group) => {
-    setModalData(group);
-    setIsEditing(true);
-    setModalType('group');
+  const handleDeleteStudent = async (id) => {
+    if (confirm("Haqiqatan ham bu o'quvchini o'chirmoqchimisiz?")) {
+      setStudents(students.filter(s => s.id !== id));
+      await supabase.from('students').delete().eq('id', id);
+    }
   };
 
-  const handleSaveModal = (e) => {
+  const handleDeleteTeacher = async (id) => {
+    if (confirm("Haqiqatan ham bu o'qituvchini o'chirmoqchimisiz?")) {
+      setTeachers(teachers.filter(t => t.id !== id));
+      await supabase.from('teachers').delete().eq('id', id);
+    }
+  };
+
+  const handleDeleteGroup = async (id) => {
+    if (confirm("Haqiqatan ham bu guruhni o'chirmoqchimisiz?")) {
+      setGroups(groups.filter(g => g.id !== id));
+      await supabase.from('groups').delete().eq('id', id);
+    }
+  };
+
+  const handleSaveModal = async (e) => {
     e.preventDefault();
+
     if (modalType === 'student') {
-      const selectedG = groups.find(g => g.id === Number(modalData.group_id || 1));
-      const branchId = selectedG ? selectedG.branch_id : Number(modalData.branch_id || 1);
+      const selectedG = groups.find(g => g.id === Number(modalData.group_id || groups[0]?.id));
+      const branchId = selectedG ? selectedG.branch_id : Number(modalData.branch_id || branches[0]?.id || 1);
 
       if (isEditing) {
-        setStudents(students.map(s => s.id === modalData.id ? { 
+        const updated = { 
           ...modalData, 
           branch_id: branchId, 
           group_id: Number(modalData.group_id), 
           debt: Number(modalData.debt) 
-        } : s));
+        };
+        setStudents(students.map(s => s.id === modalData.id ? updated : s));
+        await supabase.from('students').update(updated).eq('id', modalData.id);
       } else {
-        setStudents([...students, { 
-          ...modalData, 
-          id: Date.now(), 
+        const newObj = { 
+          id: Date.now(),
+          full_name: modalData.full_name,
+          phone: modalData.phone,
+          parent_phone: modalData.parent_phone,
           branch_id: branchId, 
           group_id: Number(modalData.group_id || groups[0]?.id || 1), 
           debt: Number(modalData.debt || 0), 
           joined_date: new Date().toISOString().split('T')[0] 
-        }]);
+        };
+        setStudents([...students, newObj]);
+        await supabase.from('students').insert([newObj]);
       }
     } else if (modalType === 'teacher') {
       if (isEditing) {
-        setTeachers(teachers.map(t => t.id === modalData.id ? { ...modalData, branch_id: Number(modalData.branch_id) } : t));
+        const updated = { ...modalData, branch_id: Number(modalData.branch_id) };
+        setTeachers(teachers.map(t => t.id === modalData.id ? updated : t));
+        await supabase.from('teachers').update(updated).eq('id', modalData.id);
       } else {
-        setTeachers([...teachers, { ...modalData, id: Date.now(), branch_id: Number(modalData.branch_id || 1) }]);
+        const newObj = { 
+          id: Date.now(), 
+          full_name: modalData.full_name,
+          subject: modalData.subject,
+          phone: modalData.phone,
+          branch_id: Number(modalData.branch_id || branches[0]?.id || 1) 
+        };
+        setTeachers([...teachers, newObj]);
+        await supabase.from('teachers').insert([newObj]);
       }
     } else if (modalType === 'group') {
       if (isEditing) {
-        setGroups(groups.map(g => g.id === modalData.id ? { 
+        const updated = { 
           ...modalData, 
           branch_id: Number(modalData.branch_id), 
           teacher_id: Number(modalData.teacher_id),
           level_id: Number(modalData.level_id || levels[0]?.id),
           days: modalData.days || [],
           monthly_fee: Number(modalData.monthly_fee) 
-        } : g));
+        };
+        setGroups(groups.map(g => g.id === modalData.id ? updated : g));
+        await supabase.from('groups').update(updated).eq('id', modalData.id);
       } else {
-        setGroups([...groups, { 
-          ...modalData, 
+        const newObj = { 
           id: Date.now(), 
-          branch_id: Number(modalData.branch_id || 1), 
+          name: modalData.name,
+          branch_id: Number(modalData.branch_id || branches[0]?.id || 1), 
           teacher_id: Number(modalData.teacher_id || teachers[0]?.id || 1),
           level_id: Number(modalData.level_id || levels[0]?.id || 1),
           days: modalData.days || ['Du', 'Chor', 'Ju'],
+          time: modalData.time || '14:00 - 16:00',
           monthly_fee: Number(modalData.monthly_fee || 400000) 
-        }]);
+        };
+        setGroups([...groups, newObj]);
+        await supabase.from('groups').insert([newObj]);
       }
     }
     setModalType(null);
+  };
+
+  const handleSaveSettings = async () => {
+    await supabase.from('system_settings').upsert({
+      id: 1,
+      center_name: systemSettings.centerName,
+      currency: systemSettings.currency,
+      sms_reminder_day: systemSettings.smsReminderDay,
+      sms_template: smsTemplate
+    });
+    alert("Sozlamalar bazada muvaffaqiyatli saqlandi!");
   };
 
   const handleCopyAllPhones = () => {
@@ -351,16 +392,7 @@ export default function App() {
       rows = filteredStudents.map(s => {
         const gr = groups.find(g => g.id === s.group_id);
         const lvl = levels.find(l => l.id === gr?.level_id);
-        return [
-          s.id, 
-          s.full_name, 
-          gr?.name || '-',
-          lvl?.name || '-',
-          s.phone, 
-          s.parent_phone, 
-          s.debt, 
-          s.joined_date
-        ];
+        return [s.id, s.full_name, gr?.name || '-', lvl?.name || '-', s.phone, s.parent_phone, s.debt, s.joined_date];
       });
     } else if (dataType === 'payments') {
       filename = "tolovlar_hisoboti.csv";
@@ -562,8 +594,11 @@ export default function App() {
               <Menu size={22} />
             </button>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold capitalize">{activeTab === 'finder' ? 'Guruh Qidirish' : `${activeTab} bo‘limi`}</h2>
-              <p className="text-xs sm:text-sm text-slate-500">Filiallar va markaz boshqaruvi</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold capitalize">{activeTab === 'finder' ? 'Guruh Qidirish' : `${activeTab} bo‘limi`}</h2>
+                {loading && <Loader2 size={18} className="animate-spin text-blue-500" />}
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500">Filiallar va markaz boshqaruvi (Supabase Cloud)</p>
             </div>
           </div>
 
@@ -637,10 +672,7 @@ export default function App() {
                           className={`w-full px-3 py-1.5 rounded-lg border text-sm outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-300'}`}
                         />
                         <button 
-                          onClick={() => {
-                            setBranches(branches.map(br => br.id === b.id ? { ...br, name: editBranchName } : br));
-                            setEditingBranchId(null);
-                          }}
+                          onClick={() => handleEditBranch(b.id)}
                           className="p-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shrink-0"
                         >
                           <Check size={16} />
@@ -794,7 +826,7 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <span className="text-xs sm:text-sm font-medium">Guruh:</span>
                 <select 
-                  value={attendanceGroupId}
+                  value={attendanceGroupId || ''}
                   onChange={(e) => setAttendanceGroupId(Number(e.target.value))}
                   className={`w-full sm:w-auto px-3 py-2 rounded-xl border text-xs sm:text-sm font-semibold outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-100 border-slate-300'}`}
                 >
@@ -1023,13 +1055,12 @@ export default function App() {
 
                       <div className="flex flex-wrap gap-1">
                         {teacherGroups.map(g => (
-                          <button
+                          <span
                             key={g.id}
-                            onClick={() => handleOpenGroupSettings(g)}
-                            className="text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-blue-50 dark:bg-slate-700 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200"
+                            className="text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
                           >
                             {g.name}
-                          </button>
+                          </span>
                         ))}
                       </div>
                     </div>
@@ -1161,9 +1192,7 @@ export default function App() {
                 <MessageSquare size={20} />
                 <h3 className="text-base sm:text-lg font-bold">SMS Xabarnoma Tizimi</h3>
               </div>
-              <p className="text-xs text-slate-400 mb-4">
-                Dinamik teglardan foydalaning:
-              </p>
+              <p className="text-xs text-slate-400 mb-4">Dinamik teglardan foydalaning:</p>
 
               <div className="flex flex-wrap gap-2 mb-4">
                 <span className="text-[11px] bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300 px-2 py-1 rounded font-mono">&#123;ism&#125;</span>
@@ -1199,6 +1228,7 @@ export default function App() {
               </div>
             </div>
 
+            {/* Jonli SMS Ko'rinishi */}
             <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <div className="flex items-center gap-2 mb-4 text-emerald-600 font-bold text-sm sm:text-base">
                 <Eye size={18} />
@@ -1302,7 +1332,7 @@ export default function App() {
               </div>
 
               <button
-                onClick={() => alert("Sozlamalar muvaffaqiyatli saqlandi!")}
+                onClick={handleSaveSettings}
                 className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold mt-4 shadow"
               >
                 <Save size={15} /> Saqlash
@@ -1346,10 +1376,7 @@ export default function App() {
                           className="w-full px-2 py-1 text-xs rounded border dark:bg-slate-700 dark:border-slate-600 outline-none"
                         />
                         <button
-                          onClick={() => {
-                            setLevels(levels.map(l => l.id === lvl.id ? { ...l, name: editLevelName } : l));
-                            setEditingLevelId(null);
-                          }}
+                          onClick={() => handleEditLevel(lvl.id)}
                           className="p-1 bg-emerald-600 text-white rounded"
                         >
                           <Check size={14} />
@@ -1423,7 +1450,7 @@ export default function App() {
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Biriktirilgan Guruh</label>
                     <select 
-                      value={modalData.group_id || groups[0]?.id} 
+                      value={modalData.group_id || groups[0]?.id || ''} 
                       onChange={e => setModalData({...modalData, group_id: e.target.value})} 
                       className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none font-medium text-xs sm:text-sm"
                     >
@@ -1465,7 +1492,7 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Filial</label>
-                    <select value={modalData.branch_id || branches[0]?.id} onChange={e => setModalData({...modalData, branch_id: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm">
+                    <select value={modalData.branch_id || branches[0]?.id || ''} onChange={e => setModalData({...modalData, branch_id: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm">
                       {branches.map(b => (
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
@@ -1483,7 +1510,7 @@ export default function App() {
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Guruh Darajasi (Level)</label>
                     <select 
-                      value={modalData.level_id || levels[0]?.id} 
+                      value={modalData.level_id || levels[0]?.id || ''} 
                       onChange={e => setModalData({...modalData, level_id: e.target.value})} 
                       className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none font-medium text-xs sm:text-sm"
                     >
@@ -1495,7 +1522,7 @@ export default function App() {
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">O‘qituvchi</label>
                     <select 
-                      value={modalData.teacher_id || teachers[0]?.id} 
+                      value={modalData.teacher_id || teachers[0]?.id || ''} 
                       onChange={e => setModalData({...modalData, teacher_id: e.target.value})} 
                       className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none font-medium text-xs sm:text-sm"
                     >
@@ -1537,7 +1564,7 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Filial</label>
-                    <select value={modalData.branch_id || branches[0]?.id} onChange={e => setModalData({...modalData, branch_id: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm">
+                    <select value={modalData.branch_id || branches[0]?.id || ''} onChange={e => setModalData({...modalData, branch_id: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm">
                       {branches.map(b => (
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
@@ -1616,8 +1643,9 @@ export default function App() {
                 Bekor qilish
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   setStudents(students.map(s => s.id === paymentModalData.student_id ? { ...s, debt: 0 } : s));
+                  await supabase.from('students').update({ debt: 0 }).eq('id', paymentModalData.student_id);
                   alert(`To'lov muvaffaqiyatli saqlandi!`);
                   setPaymentModalData(null);
                 }}
