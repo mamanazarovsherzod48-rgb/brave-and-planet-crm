@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import * as mammoth from 'mammoth';
 import { 
-  Building2, Users, GraduationCap, CheckSquare, 
+  Building2, GraduationCap, CheckSquare, 
   CreditCard, Settings, Moon, Sun, Edit2, Trash2, Plus, Check, Send, 
   AlertCircle, BookOpen, UserCheck, MessageSquare, Download, Copy, Save, 
-  ChevronRight, Search, Filter, Layers, Eye, LogOut, Lock, User, Menu, X, Loader2,
-  Clock, FileText, Upload, Calendar, CheckCircle2
+  Search, Filter, Layers, Eye, LogOut, Lock, User, Menu, X, Loader2,
+  Clock, FileText, Upload
 } from 'lucide-react';
 
 const SUPABASE_URL = "https://qvtthgoeythyqdpslsqh.supabase.co";
@@ -102,6 +102,7 @@ export default function App() {
   const [isDocxModalOpen, setIsDocxModalOpen] = useState(false);
   const [docxGroupId, setDocxGroupId] = useState('');
   const [docxTextData, setDocxTextData] = useState('');
+  const [singlePhoneRole, setSinglePhoneRole] = useState('parent'); // 'parent' yoki 'student'
   const [isDocxProcessing, setIsDocxProcessing] = useState(false);
 
   // Modallar holati
@@ -187,6 +188,17 @@ export default function App() {
     }
   };
 
+  // O'qituvchilarning barcha filiallarini xavfsiz aniqlash
+  const getTeacherBranchIds = (t) => {
+    if (Array.isArray(t.branch_ids) && t.branch_ids.length > 0) {
+      return t.branch_ids.map(Number);
+    }
+    if (t.branch_id) {
+      return [Number(t.branch_id)];
+    }
+    return [];
+  };
+
   // Filtrlangan ma'lumotlar
   const filteredStudents = selectedBranch === 'ALL' 
     ? students 
@@ -199,7 +211,7 @@ export default function App() {
   const filteredTeachers = selectedBranch === 'ALL' 
     ? teachers 
     : teachers.filter(t => {
-        const bIds = Array.isArray(t.branch_ids) ? t.branch_ids : [t.branch_id];
+        const bIds = getTeacherBranchIds(t);
         return bIds.includes(parseInt(selectedBranch));
       });
 
@@ -225,10 +237,11 @@ export default function App() {
 
   const toggleTeacherBranchSelection = (branchId) => {
     const currentBranches = modalData.branch_ids || (modalData.branch_id ? [modalData.branch_id] : []);
-    if (currentBranches.includes(branchId)) {
-      setModalData({ ...modalData, branch_ids: currentBranches.filter(b => b !== branchId) });
+    const numericBranchId = Number(branchId);
+    if (currentBranches.includes(numericBranchId)) {
+      setModalData({ ...modalData, branch_ids: currentBranches.filter(b => b !== numericBranchId) });
     } else {
-      setModalData({ ...modalData, branch_ids: [...currentBranches, branchId] });
+      setModalData({ ...modalData, branch_ids: [...currentBranches, numericBranchId] });
     }
   };
 
@@ -251,7 +264,7 @@ export default function App() {
   };
 
   // ---------------------------------------------------------
-  // DOCX VA OMMAGAVIY O'QUVCHI IMPORT QILISH
+  // INTELLEKTUAL DOCX VA MATN PARSER ALGORITMI
   // ---------------------------------------------------------
   const handleDocxFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -263,7 +276,7 @@ export default function App() {
       const result = await mammoth.extractRawText({ arrayBuffer });
       setDocxTextData(result.value);
     } catch (err) {
-      alert("DOCX faylni o'qishda xatolik yuz berdi. Matnli fayl ekanligini tekshiring.");
+      alert("DOCX faylni o'qishda xatolik yuz berdi. Matnli Word fayl ekanligini tekshiring.");
     } finally {
       setIsDocxProcessing(false);
     }
@@ -281,22 +294,59 @@ export default function App() {
     }
 
     const targetGroup = groups.find(g => g.id === Number(docxGroupId));
-    const lines = docxTextData.split('\n').filter(line => line.trim().length > 0);
+    const lines = docxTextData.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     const newStudentsToInsert = [];
 
+    // Telefon raqamlarini aniqlash regexi (masalan +998901234567, 90 123-45-67, 901234567)
+    const phoneRegex = /(?:\+?998[\s-]?)?\(?\d{2}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{9}\b/g;
+
     lines.forEach((line, index) => {
-      // Masalan: "1. Aliyev Vali +998901234567 +998907654321" yoki shunchaki "Aliyev Vali, 901234567"
-      const cleanLine = line.replace(/^\d+[\.\)\-\s]+/, '').trim();
-      const parts = cleanLine.split(/[\t,;]+/).map(p => p.trim());
+      // 1. Qatordagi barcha telefon raqamlarni topamiz
+      const foundPhones = line.match(phoneRegex) || [];
       
-      const fullName = parts[0] || `O'quvchi ${index + 1}`;
-      const phone = parts[1] || "+998";
-      const parentPhone = parts[2] || parts[1] || "+998";
+      // Raqamlarni tozalab +998 formatiga keltiramiz
+      const cleanPhones = foundPhones.map(p => {
+        let num = p.replace(/\D/g, '');
+        if (num.length === 9) num = '998' + num;
+        return num.startsWith('998') ? '+' + num : num;
+      });
+
+      // 2. Qatordan raqamlarni olib tashlab faqat Ism-Familiyani ajratamiz
+      let namePart = line;
+      foundPhones.forEach(p => {
+        namePart = namePart.replace(p, '');
+      });
+
+      // Raqamlar, qavslar, tartib raqamlarini tozalash (masalan: "1. Aliyev Vali - " -> "Aliyev Vali")
+      namePart = namePart
+        .replace(/^\d+[\.\)\-\s]+/, '')
+        .replace(/[\,\;\:\-\|\/]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const fullName = namePart || `O'quvchi ${index + 1}`;
+      
+      let studentPhone = "-";
+      let parentPhone = "-";
+
+      // 3. Telefonlarni taqsimlash mantiqi
+      if (cleanPhones.length >= 2) {
+        studentPhone = cleanPhones[0];
+        parentPhone = cleanPhones[1];
+      } else if (cleanPhones.length === 1) {
+        if (singlePhoneRole === 'parent') {
+          parentPhone = cleanPhones[0];
+          studentPhone = "-";
+        } else {
+          studentPhone = cleanPhones[0];
+          parentPhone = "-";
+        }
+      }
 
       newStudentsToInsert.push({
         id: Date.now() + index,
         full_name: fullName,
-        phone: phone,
+        phone: studentPhone,
         parent_phone: parentPhone,
         group_id: Number(docxGroupId),
         branch_id: targetGroup?.branch_id || 1,
@@ -308,7 +358,7 @@ export default function App() {
     if (newStudentsToInsert.length > 0) {
       setStudents(prev => [...prev, ...newStudentsToInsert]);
       await supabase.from('students').insert(newStudentsToInsert);
-      alert(`Muvaffaqiyatli! ${newStudentsToInsert.length} ta o'quvchi guruhga biriktirildi.`);
+      alert(`Muvaffaqiyatli! ${newStudentsToInsert.length} ta o'quvchi aniqlandi va guruhga qo'shildi.`);
       setIsDocxModalOpen(false);
       setDocxTextData('');
     }
@@ -344,7 +394,7 @@ export default function App() {
   };
 
   const handleEditLevel = async (id) => {
-    setLevels(levels.map(l => l.id === id ? { ...l, name: editLevelName } : l));
+    setLevels(levels.map(l => l.id === id ? { ...l, name: editLevelName } : b));
     setEditingLevelId(null);
     await supabase.from('levels').update({ name: editLevelName }).eq('id', id);
   };
@@ -387,9 +437,11 @@ export default function App() {
       if (isEditing) {
         const updated = { 
           ...modalData, 
+          phone: modalData.phone || '-',
+          parent_phone: modalData.parent_phone || '-',
           branch_id: branchId, 
           group_id: Number(modalData.group_id), 
-          debt: Number(modalData.debt) 
+          debt: Number(modalData.debt || 0) 
         };
         setStudents(students.map(s => s.id === modalData.id ? updated : s));
         await supabase.from('students').update(updated).eq('id', modalData.id);
@@ -397,8 +449,8 @@ export default function App() {
         const newObj = { 
           id: Date.now(),
           full_name: modalData.full_name,
-          phone: modalData.phone,
-          parent_phone: modalData.parent_phone,
+          phone: modalData.phone || '-',
+          parent_phone: modalData.parent_phone || '-',
           branch_id: branchId, 
           group_id: Number(modalData.group_id || groups[0]?.id || 1), 
           debt: Number(modalData.debt || 0), 
@@ -425,7 +477,7 @@ export default function App() {
           id: Date.now(), 
           full_name: modalData.full_name,
           subject: modalData.subject,
-          phone: modalData.phone,
+          phone: modalData.phone || '-',
           branch_ids: branchIds,
           branch_id: branchIds[0] 
         };
@@ -462,7 +514,6 @@ export default function App() {
     setModalType(null);
   };
 
-  // To'lovni tasdiqlash va tarixga yozish
   const handleConfirmPayment = async () => {
     if (!paymentModalData) return;
 
@@ -502,12 +553,11 @@ export default function App() {
   };
 
   const handleCopyAllPhones = () => {
-    const phones = filteredStudents.map(s => `${s.full_name}: ${s.phone} (Ota-ona: ${s.parent_phone})`).join('\n');
+    const phones = filteredStudents.map(s => `${s.full_name}: O'quvchi(${s.phone}), Ota-ona(${s.parent_phone})`).join('\n');
     navigator.clipboard.writeText(phones);
     alert("Barcha o'quvchilar va ularning ota-onalari telefon raqamlari nusxalandi!");
   };
 
-  // EXCEL / CSV HISOBOTLARNI TOZA FORMATDA CHIQARISH
   const exportToExcel = (dataType) => {
     let headers = [];
     let rows = [];
@@ -515,7 +565,7 @@ export default function App() {
 
     if (dataType === 'students') {
       filename = `oquvchilar_hisoboti_${new Date().toISOString().split('T')[0]}.csv`;
-      headers = ["ID", "F.I.O", "Telefon Raqami", "Ota-onasi Telefoni", "Guruh Nomi", "Guruh Darajasi", "O'qituvchisi", "Filial", "Qarzdorlik Summasi", "Qo'shilgan Sana"];
+      headers = ["ID", "F.I.O", "O'quvchi Telefoni", "Ota-onasi Telefoni", "Guruh Nomi", "Guruh Darajasi", "O'qituvchisi", "Filial", "Qarzdorlik Summasi", "Qo'shilgan Sana"];
       rows = filteredStudents.map(s => {
         const gr = groups.find(g => g.id === s.group_id);
         const lvl = levels.find(l => l.id === gr?.level_id);
@@ -934,8 +984,8 @@ export default function App() {
                               onClick={() => {
                                 setModalData({ 
                                   full_name: '', 
-                                  phone: '+998', 
-                                  parent_phone: '+998', 
+                                  phone: '', 
+                                  parent_phone: '', 
                                   debt: 0, 
                                   group_id: g.id 
                                 });
@@ -992,7 +1042,7 @@ export default function App() {
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-400 text-xs sm:text-sm">
                     <th className="pb-3 px-3 sm:px-0 font-medium">O‘quvchi</th>
-                    <th className="pb-3 font-medium">Telefon</th>
+                    <th className="pb-3 font-medium">Aloqa (Ota-ona / Tel)</th>
                     <th className="pb-3 font-medium text-center">Davomat (+/-)</th>
                     <th className="pb-3 pr-3 sm:pr-0 font-medium text-right">Amallar</th>
                   </tr>
@@ -1007,7 +1057,9 @@ export default function App() {
                       return (
                         <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30">
                           <td className="py-3 px-3 sm:px-0 font-semibold text-sm">{student.full_name}</td>
-                          <td className="py-3 text-xs sm:text-sm text-slate-400">{student.phone}</td>
+                          <td className="py-3 text-xs text-slate-500 dark:text-slate-400">
+                            {student.parent_phone !== '-' ? student.parent_phone : student.phone}
+                          </td>
                           <td className="py-3">
                             <div className="flex items-center justify-center gap-2">
                               <button
@@ -1138,14 +1190,14 @@ export default function App() {
           </div>
         )}
 
-        {/* 5. O'QITUVCHILAR BO'LIMI (FILIALLAR BO'YICHA GURUHLANGAN) */}
+        {/* 5. O'QITUVCHILAR BO'LIMI */}
         {activeTab === 'teachers' && (
           <div className="space-y-6">
             <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                 <div>
                   <h3 className="text-base sm:text-lg font-bold">O‘qituvchilar (Filiallar kesimida)</h3>
-                  <p className="text-xs text-slate-400">Har bir filial bo‘yicha ishlaydigan ustozlar ro‘yxati</p>
+                  <p className="text-xs text-slate-400">Jami o‘qituvchilar soni: {teachers.length} ta</p>
                 </div>
                 <button
                   onClick={() => {
@@ -1153,7 +1205,7 @@ export default function App() {
                       full_name: '', 
                       subject: '', 
                       phone: '+998', 
-                      branch_ids: [branches[0]?.id || 1] 
+                      branch_ids: branches[0]?.id ? [Number(branches[0].id)] : [] 
                     });
                     setIsEditing(false);
                     setModalType('teacher');
@@ -1167,11 +1219,11 @@ export default function App() {
               {/* Filiallar bo'yicha bloklar */}
               <div className="space-y-6">
                 {branches
-                  .filter(b => selectedBranch === 'ALL' || b.id === Number(selectedBranch))
+                  .filter(b => selectedBranch === 'ALL' || Number(b.id) === Number(selectedBranch))
                   .map(branch => {
                     const branchTeachers = teachers.filter(t => {
-                      const bIds = Array.isArray(t.branch_ids) ? t.branch_ids : [t.branch_id];
-                      return bIds.includes(branch.id);
+                      const bIds = getTeacherBranchIds(t);
+                      return bIds.includes(Number(branch.id));
                     });
 
                     return (
@@ -1189,41 +1241,42 @@ export default function App() {
                         {branchTeachers.length > 0 ? (
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                             {branchTeachers.map(t => {
-                              const teacherGroups = groups.filter(g => g.teacher_id === t.id && g.branch_id === branch.id);
-                              const totalTeacherGroups = groups.filter(g => g.teacher_id === t.id);
+                              const teacherGroups = groups.filter(g => Number(g.teacher_id) === Number(t.id) && Number(g.branch_id) === Number(branch.id));
 
                               return (
-                                <div key={t.id} className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col justify-between shadow-xs">
+                                <div key={`${branch.id}-${t.id}`} className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col justify-between shadow-xs">
                                   <div>
                                     <div className="flex justify-between items-start mb-2">
                                       <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center font-bold text-purple-600 text-xs">
-                                        {t.full_name?.charAt(0)}
+                                        {t.full_name?.charAt(0) || 'U'}
                                       </div>
                                       <div className="flex gap-1">
                                         <button 
                                           onClick={() => { 
                                             setModalData({
                                               ...t,
-                                              branch_ids: Array.isArray(t.branch_ids) ? t.branch_ids : [t.branch_id]
+                                              branch_ids: getTeacherBranchIds(t)
                                             }); 
                                             setIsEditing(true); 
                                             setModalType('teacher'); 
                                           }}
                                           className="text-slate-400 hover:text-blue-500 p-1"
+                                          title="Tahrirlash"
                                         >
-                                          <Edit2 size={13} />
+                                          <Edit2 size={14} />
                                         </button>
                                         <button 
                                           onClick={() => handleDeleteTeacher(t.id)}
                                           className="text-slate-400 hover:text-rose-500 p-1"
+                                          title="O'chirish"
                                         >
-                                          <Trash2 size={13} />
+                                          <Trash2 size={14} />
                                         </button>
                                       </div>
                                     </div>
 
                                     <h5 className="font-bold text-xs sm:text-sm">{t.full_name}</h5>
-                                    <p className="text-[11px] text-purple-600 dark:text-purple-400 font-medium">{t.subject}</p>
+                                    <p className="text-[11px] text-purple-600 dark:text-purple-400 font-medium">{t.subject || 'Fan ko‘rsatilmagan'}</p>
                                     <p className="text-[11px] text-slate-400 mt-1">Tel: <span className="text-slate-700 dark:text-slate-300 font-semibold">{t.phone}</span></p>
                                   </div>
 
@@ -1233,11 +1286,15 @@ export default function App() {
                                       <span className="font-bold text-slate-700 dark:text-slate-300">{teacherGroups.length} ta</span>
                                     </div>
                                     <div className="flex flex-wrap gap-1">
-                                      {teacherGroups.map(g => (
-                                        <span key={g.id} className="text-[10px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded font-medium">
-                                          {g.name}
-                                        </span>
-                                      ))}
+                                      {teacherGroups.length > 0 ? (
+                                        teacherGroups.map(g => (
+                                          <span key={g.id} className="text-[10px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded font-medium">
+                                            {g.name}
+                                          </span>
+                                        ))
+                                      ) : (
+                                        <span className="text-[10px] text-slate-400 italic">Guruh biriktirilmagan</span>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -1250,6 +1307,56 @@ export default function App() {
                       </div>
                     );
                   })}
+
+                {/* Filialsiz o'qituvchilar uchun xavfsizlik bloki */}
+                {teachers.filter(t => {
+                  const bIds = getTeacherBranchIds(t);
+                  return !branches.some(b => bIds.includes(Number(b.id)));
+                }).length > 0 && (
+                  <div className={`p-4 rounded-xl border border-dashed border-amber-400/60 ${darkMode ? 'bg-amber-950/20' : 'bg-amber-50/60'}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-bold text-sm text-amber-600 dark:text-amber-400">Filiali belgilanmagan / Boshqa o‘qituvchilar</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {teachers
+                        .filter(t => {
+                          const bIds = getTeacherBranchIds(t);
+                          return !branches.some(b => bIds.includes(Number(b.id)));
+                        })
+                        .map(t => (
+                          <div key={t.id} className="p-3 rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-800 flex justify-between items-center">
+                            <div>
+                              <p className="font-bold text-xs">{t.full_name}</p>
+                              <span className="text-[10px] text-slate-400">{t.subject} ({t.phone})</span>
+                            </div>
+                            <div className="flex gap-1">
+                              <button 
+                                onClick={() => { 
+                                  setModalData({
+                                    ...t,
+                                    branch_ids: branches.length > 0 ? [Number(branches[0].id)] : []
+                                  }); 
+                                  setIsEditing(true); 
+                                  setModalType('teacher'); 
+                                }}
+                                className="p-1 text-blue-500 hover:bg-blue-50 rounded"
+                                title="Filialga biriktirish"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteTeacher(t.id)}
+                                className="p-1 text-rose-500 hover:bg-rose-50 rounded"
+                                title="O'chirish"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1280,8 +1387,8 @@ export default function App() {
                   onClick={() => {
                     setModalData({ 
                       full_name: '', 
-                      phone: '+998', 
-                      parent_phone: '+998', 
+                      phone: '', 
+                      parent_phone: '', 
                       debt: 0, 
                       group_id: groups[0]?.id || 1 
                     });
@@ -1314,7 +1421,15 @@ export default function App() {
                         </span>
                       </div>
                       <p className="text-[11px] sm:text-xs text-slate-400 mt-1">
-                        Tel: <span className="text-slate-700 dark:text-slate-300">{s.phone}</span> | Ota-onasi: <span className="text-slate-700 dark:text-slate-300">{s.parent_phone}</span>
+                        {s.parent_phone && s.parent_phone !== '-' && (
+                          <span className="mr-3">Ota-onasi: <b className="text-slate-700 dark:text-slate-300">{s.parent_phone}</b></span>
+                        )}
+                        {s.phone && s.phone !== '-' && (
+                          <span>O‘quvchi tel: <b className="text-slate-700 dark:text-slate-300">{s.phone}</b></span>
+                        )}
+                        {(!s.phone || s.phone === '-') && (!s.parent_phone || s.parent_phone === '-') && (
+                          <span className="italic text-slate-400">Telefon raqam kiritilmagan</span>
+                        )}
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -1338,7 +1453,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 7. TO'LOVLAR BO'LIMI (GURUHLAR KESIMIDA & TO'LIQ SANA BILAN) */}
+        {/* 7. TO'LOVLAR BO'LIMI */}
         {activeTab === 'payments' && (
           <div className="space-y-6">
             <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -1349,7 +1464,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Guruhlar bo'yicha ajratilgan to'lov ro'yxati */}
+              {/* Guruhlar kesimida to'lovlar */}
               <div className="space-y-6">
                 {filteredGroups.map(group => {
                   const groupStudents = students.filter(s => s.group_id === group.id);
@@ -1371,13 +1486,14 @@ export default function App() {
                         {groupStudents.length > 0 ? (
                           groupStudents.map(student => {
                             const lastPayment = paymentsList.find(p => p.student_id === student.id);
+                            const contactPhone = student.parent_phone !== '-' ? student.parent_phone : student.phone;
 
                             return (
                               <div key={student.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 gap-2">
                                 <div>
                                   <p className="font-semibold text-xs sm:text-sm">{student.full_name}</p>
                                   <div className="flex flex-wrap gap-2 text-[11px] text-slate-400 mt-0.5">
-                                    <span>Tel: {student.parent_phone}</span>
+                                    <span>Aloqa: {contactPhone}</span>
                                     {lastPayment && (
                                       <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                                         • Oxirgi to‘lov: <b>{lastPayment.target_month} {lastPayment.target_year}</b> uchun ({lastPayment.paid_date} da)
@@ -1409,9 +1525,9 @@ export default function App() {
                                     To‘lov Qilish
                                   </button>
 
-                                  {student.debt > 0 && (
+                                  {student.debt > 0 && contactPhone !== '-' && (
                                     <button 
-                                      onClick={() => alert(`SMS yuborildi (${student.parent_phone}):\n\n"${generateSmsText(student)}"`)}
+                                      onClick={() => alert(`SMS yuborildi (${contactPhone}):\n\n"${generateSmsText(student)}"`)}
                                       className="p-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold"
                                       title="SMS Eslatma"
                                     >
@@ -1468,7 +1584,7 @@ export default function App() {
                       alert("Qarzdor o'quvchilar yo'q!");
                       return;
                     }
-                    const smsList = debtors.map(s => `Kimga: ${s.parent_phone} (${s.full_name})\nMatn: ${generateSmsText(s)}`).join('\n\n---\n\n');
+                    const smsList = debtors.map(s => `Kimga: ${s.parent_phone !== '-' ? s.parent_phone : s.phone} (${s.full_name})\nMatn: ${generateSmsText(s)}`).join('\n\n---\n\n');
                     alert(`Barcha qarzdorlarga SMS yuborildi!\n\nNamuna xabarlar:\n\n${smsList}`);
                   }}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow"
@@ -1478,6 +1594,7 @@ export default function App() {
               </div>
             </div>
 
+            {/* Jonli SMS Ko'rinishi */}
             <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <div className="flex items-center gap-2 mb-4 text-emerald-600 font-bold text-sm sm:text-base">
                 <Eye size={18} />
@@ -1488,13 +1605,14 @@ export default function App() {
                 {filteredStudents.filter(s => s.debt > 0).map(s => {
                   const studentGroup = groups.find(g => g.id === s.group_id);
                   const generatedMsg = generateSmsText(s);
+                  const contact = s.parent_phone !== '-' ? s.parent_phone : s.phone;
 
                   return (
                     <div key={s.id} className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 flex flex-col justify-between gap-2.5">
                       <div>
                         <div className="flex justify-between items-center text-xs text-slate-400 mb-1">
                           <span className="font-semibold text-slate-700 dark:text-slate-200">{s.full_name}</span>
-                          <span>{s.parent_phone}</span>
+                          <span>{contact}</span>
                         </div>
                         <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-mono leading-relaxed text-slate-800 dark:text-slate-200">
                           {generatedMsg}
@@ -1504,7 +1622,7 @@ export default function App() {
                       <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px]">
                         <span className="text-blue-600 font-medium truncate">{studentGroup?.name}</span>
                         <button
-                          onClick={() => alert(`SMS yuborildi (${s.parent_phone}):\n\n"${generatedMsg}"`)}
+                          onClick={() => alert(`SMS yuborildi (${contact}):\n\n"${generatedMsg}"`)}
                           className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold flex items-center gap-1 shrink-0"
                         >
                           <Send size={11} /> Yuborish
@@ -1518,7 +1636,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 9. HISOBOT VA EXCEL BO'LIMI (TOZA FORMATLAR) */}
+        {/* 9. HISOBOT VA EXCEL BO'LIMI */}
         {activeTab === 'reports' && (
           <div className="space-y-6">
             <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -1529,7 +1647,7 @@ export default function App() {
                 <div className="p-4 sm:p-5 border border-slate-200 dark:border-slate-700 rounded-xl flex flex-col justify-between gap-3 bg-slate-50 dark:bg-slate-800/40">
                   <div>
                     <h4 className="font-bold text-sm">O‘quvchilar To‘liq Ro‘yxati Hisoboti</h4>
-                    <p className="text-xs text-slate-400 mt-1">Ustunlar: F.I.O, Telefonlar, Guruhi, Darajasi, O‘qituvchisi, Filial va Qarzdorlik.</p>
+                    <p className="text-xs text-slate-400 mt-1">Ustunlar: F.I.O, O‘quvchi teli, Ota-onasi teli, Guruhi, Darajasi, O‘qituvchisi, Filial va Qarz.</p>
                   </div>
                   <button
                     onClick={() => exportToExcel('students')}
@@ -1718,7 +1836,7 @@ export default function App() {
 
       </main>
 
-      {/* DOCX / GURUH IMPORT QILISH MODALI */}
+      {/* DOCX / GURUH INTELLEKTUAL IMPORT MODALI */}
       {isDocxModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className={`w-full max-w-lg p-5 sm:p-6 rounded-2xl shadow-2xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'} max-h-[90vh] overflow-y-auto`}>
@@ -1743,6 +1861,35 @@ export default function App() {
                 </select>
               </div>
 
+              {/* Faqat 1 ta raqam bo'lsa kimga tegishli deb hisoblansin? */}
+              <div className="p-3 bg-blue-50/50 dark:bg-slate-700/50 border border-blue-100 dark:border-slate-600 rounded-xl">
+                <label className="block text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1.5">
+                  Agar o'quvchida faqat 1 ta raqam yozilgan bo'lsa:
+                </label>
+                <div className="flex items-center gap-4 text-xs font-medium">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="singlePhoneRole" 
+                      value="parent" 
+                      checked={singlePhoneRole === 'parent'} 
+                      onChange={() => setSinglePhoneRole('parent')} 
+                    />
+                    <span>Ota-onasining raqami deb olish (Tavsiya)</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="singlePhoneRole" 
+                      value="student" 
+                      checked={singlePhoneRole === 'student'} 
+                      onChange={() => setSinglePhoneRole('student')} 
+                    />
+                    <span>O'quvchining shaxsiy raqami</span>
+                  </label>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-400 mb-1">Word (.docx) faylini tanlang:</label>
                 <input 
@@ -1755,15 +1902,17 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Yoki ro‘yxatni to‘g‘ridan-to‘g‘ri yozing (Har bir qatorda bitta o‘quvchi):</label>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Yoki ro‘yxat matnini shu yerga qo‘ying:</label>
                 <textarea
                   rows="6"
-                  placeholder="Aliyev Vali, +998901234567, +998909876543&#10;Karimov Jasur, +998912345678, +998918765432"
+                  placeholder="Aliyev Vali 901234567 909876543&#10;Karimov Jasur 912345678&#10;Toshmatov Anvar"
                   value={docxTextData}
                   onChange={(e) => setDocxTextData(e.target.value)}
                   className={`w-full p-3 rounded-xl border outline-none text-xs font-mono leading-relaxed ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-50 border-slate-300'}`}
                 />
-                <p className="text-[11px] text-slate-400 mt-1">Format: <b>Ism Familiya, O‘quvchi Tel, Ota-onasi Tel</b> (yoki shunchaki ismlar ro‘yxati)</p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  * Algoritm har bir qatordan ism, 1-raqam va 2-raqamni avtomatik topib tozalab ajratadi.
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -1805,12 +1954,12 @@ export default function App() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">O‘quvchi Telefoni</label>
-                    <input required type="text" value={modalData.phone || ''} onChange={e => setModalData({...modalData, phone: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Ota-onasi Telefoni (SMS va Aloqa uchun)</label>
+                    <input type="text" placeholder="+998..." value={modalData.parent_phone === '-' ? '' : (modalData.parent_phone || '')} onChange={e => setModalData({...modalData, parent_phone: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Ota-onasi Telefoni</label>
-                    <input required type="text" value={modalData.parent_phone || ''} onChange={e => setModalData({...modalData, parent_phone: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">O‘quvchining Shaxsiy Telefoni (Mavjud bo'lsa)</label>
+                    <input type="text" placeholder="+998..." value={modalData.phone === '-' ? '' : (modalData.phone || '')} onChange={e => setModalData({...modalData, phone: e.target.value})} className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Qarzdorlik summasi ({systemSettings.currency})</label>
