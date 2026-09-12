@@ -10,8 +10,6 @@ export default function SmsManagerModal({ isOpen, onClose, students = [], single
     return (students || []).filter(s => Number(s?.debt) > 0 && s?.status === 'active');
   }, [students]);
 
-  const recipientCount = currentStudent ? 1 : debtorsList.length;
-  
   const studentName = currentStudent?.full_name || currentStudent?.name || currentStudent?.first_name || 'Talaba';
   const studentPhone = currentStudent?.parent_phone || currentStudent?.parentPhone || currentStudent?.phone || '';
 
@@ -20,6 +18,11 @@ export default function SmsManagerModal({ isOpen, onClose, students = [], single
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [statusMessage, setStatusMessage] = useState({ text: '', type: '' });
+  const [sentSuccessIds, setSentSuccessIds] = useState([]);
+
+  // Hali SMS bormagan qarzdorlar soni
+  const pendingDebtorsCount = debtorsList.filter(s => !sentSuccessIds.includes(s.id)).length;
+  const recipientCount = currentStudent ? 1 : pendingDebtorsCount;
 
   // TextUP panelidagi rasmiy tasdiqlangan shablon matni:
   const defaultTemplate = "Hurmatli ota-ona, farzandingizning to'lovi amalga oshirilmagan. Iltimos to'lovni amalga oshiring. Brave and Planet o'quv markazi.";
@@ -100,14 +103,18 @@ export default function SmsManagerModal({ isOpen, onClose, students = [], single
           throw new Error("Bu o'quvchida telefon raqam topilmadi!");
         }
 
+        if (sentSuccessIds.includes(currentStudent.id)) {
+          throw new Error("Bu o'quvchiga hozirgina SMS jo'natildi!");
+        }
+
         await sendTextUpSms(token, userId, [studentPhone], messageText);
 
-        // Oxirgi yuborilgan vaqtni qayd qilish
         await supabase
           .from('students')
           .update({ last_sms_sent_at: new Date().toISOString() })
           .eq('id', currentStudent.id);
 
+        setSentSuccessIds(prev => [...prev, currentStudent.id]);
         setStatusMessage({ text: `${studentName}ning ota-onasiga SMS muvaffaqiyatli yetkazildi!`, type: 'success' });
         setLoading(false);
         return;
@@ -123,6 +130,12 @@ export default function SmsManagerModal({ isOpen, onClose, students = [], single
 
       for (let i = 0; i < debtorsList.length; i++) {
         const st = debtorsList[i];
+
+        // HIMOYА: Agar bu o'quvchiga allaqachon muvaffaqiyatli ketgan bo'lsa, tashlab o'tamiz
+        if (sentSuccessIds.includes(st.id)) {
+          continue;
+        }
+
         const phone = st?.parent_phone || st?.phone;
 
         if (!phone) {
@@ -135,14 +148,16 @@ export default function SmsManagerModal({ isOpen, onClose, students = [], single
         try {
           await sendTextUpSms(token, userId, [phone], messageText);
           
-          // Har bir yuborilgan qarzdor uchun status sanasini yangilash
           await supabase
             .from('students')
             .update({ last_sms_sent_at: new Date().toISOString() })
             .eq('id', st.id);
 
+          // Muvaffaqiyatli ketganini ro'yxatga kiritib boramiz
+          setSentSuccessIds(prev => [...prev, st.id]);
           successCount++;
         } catch (err) {
+          console.error(`${st.full_name || st.name} uchun SMS xatosi:`, err);
           failCount++;
         }
 
@@ -150,7 +165,7 @@ export default function SmsManagerModal({ isOpen, onClose, students = [], single
       }
 
       setStatusMessage({
-        text: `Tugadi. Muvaffaqiyatli: ${successCount}, Xato: ${failCount}`,
+        text: `Jarayon yakunlandi. Yangi yuborildi: ${successCount} ta, Ketmaganlar: ${failCount} ta.`,
         type: successCount > 0 ? 'success' : 'error'
       });
     } catch (err) {
@@ -173,7 +188,7 @@ export default function SmsManagerModal({ isOpen, onClose, students = [], single
           </div>
           <div>
             <h2 className="text-lg font-bold">
-              {currentStudent ? `SMS: ${studentName}` : `Qarzdorlarga SMS (${recipientCount} ta)`}
+              {currentStudent ? `SMS: ${studentName}` : `Qarzdorlarga SMS (${recipientCount} ta qoldi)`}
             </h2>
             <p className="text-xs text-gray-400">Brave and Planet o'quv markazi xabarnomasi</p>
           </div>
@@ -252,7 +267,9 @@ export default function SmsManagerModal({ isOpen, onClose, students = [], single
                 <span>
                   {currentStudent
                     ? `${studentName}ning ota-onasiga yuborish`
-                    : `Faqat qarzdorlarga yuborish (${debtorsList.length} ta)`}
+                    : recipientCount === 0 
+                      ? "Barcha qarzdorlarga SMS yetkazildi"
+                      : `Faqat qolgan qarzdorlarga yuborish (${recipientCount} ta)`}
                 </span>
               </>
             )}
