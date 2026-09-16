@@ -3166,6 +3166,71 @@ export default function App() {
   </>
 )}
 
+              {modalType === 'teacher' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">O‘qituvchi F.I.O</label>
+                    <input 
+                      required 
+                      type="text" 
+                      placeholder="Masalan: Abdullayev Javohir"
+                      value={modalData.full_name || ''} 
+                      onChange={e => setModalData({ ...modalData, full_name: e.target.value })} 
+                      className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Fani / Mutaxassisligi</label>
+                    <input 
+                      required 
+                      type="text" 
+                      placeholder="Masalan: IELTS / Grammar / Kids"
+                      value={modalData.subject || ''} 
+                      onChange={e => setModalData({ ...modalData, subject: e.target.value })} 
+                      className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Telefon Raqami</label>
+                    <input 
+                      type="text" 
+                      placeholder="+998..."
+                      value={modalData.phone || ''} 
+                      onChange={e => setModalData({ ...modalData, phone: e.target.value })} 
+                      className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Faoliyat Ko‘rsatadigan Filial(lar):</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {branches.map(branch => {
+                        const currentBranches = modalData.branch_ids || (modalData.branch_id ? [Number(modalData.branch_id)] : []);
+                        const isSelected = currentBranches.includes(Number(branch.id));
+
+                        return (
+                          <button
+                            type="button"
+                            key={branch.id}
+                            onClick={() => toggleTeacherBranchSelection(branch.id)}
+                            className={`px-3 py-2 rounded-xl border text-xs font-medium flex items-center justify-between transition-all ${
+                              isSelected
+                                ? 'bg-purple-600 border-purple-600 text-white shadow'
+                                : 'bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200'
+                            }`}
+                          >
+                            <span>{branch.name}</span>
+                            {isSelected && <Check size={14} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+              
               {modalType === 'group' && (
                 <>
                   <div>
