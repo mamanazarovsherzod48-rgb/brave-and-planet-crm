@@ -300,7 +300,6 @@ const StudentModal = React.memo(({
   darkMode, 
   onSave 
 }) => {
-  // Faqat oylar tanlanganda ko'rinishi uchun kichik state
   const [debtMonths, setDebtMonths] = useState(initialData?.debt_months || '');
   const [selectedGroupId, setSelectedGroupId] = useState(initialData?.group_id || groups[0]?.id || '');
 
@@ -315,7 +314,6 @@ const StudentModal = React.memo(({
     e.preventDefault();
     const form = e.target;
 
-    // Qiymatlar faqat "Saqlash" bosilgandagina to'g'ridan-to'g'ri o'qib olinadi
     const payload = {
       ...initialData,
       full_name: form.full_name.value.trim(),
@@ -780,12 +778,6 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (students.length > 0 && groups.length > 0 && systemSettings.billingDay) {
-      triggerMonthlyBilling(false);
-    }
-  }, [students.length, groups.length, systemSettings.billingDay]);
-
-  useEffect(() => {
     localStorage.setItem('eduflow_dark', darkMode);
   }, [darkMode]);
 
@@ -1248,7 +1240,6 @@ export default function App() {
 
   const handleExportAttendanceDocx = async () => {
     try {
-      // 1. Bazadan davomat yozuvlarini sanalar tartibida olish
       const { data: attData, error: attError } = await supabase
         .from('attendance')
         .select('*')
@@ -1256,7 +1247,6 @@ export default function App() {
 
       if (attError) throw attError;
 
-      // 2. Tanlangan filial bo'yicha faol o'quvchilarni saralash
       const activeStudentsList = selectedBranch === 'ALL'
         ? students.filter(s => s.status !== 'archived')
         : students.filter(s => {
@@ -1269,7 +1259,6 @@ export default function App() {
         return;
       }
 
-      // 3. Rasmiy jadval tuzilishi
       const tableRows = [
         new TableRow({
           tableHeader: true,
@@ -1290,7 +1279,7 @@ export default function App() {
           const presentDates = studentAtt.filter(a => a.status === '+');
           const absentDates = studentAtt
             .filter(a => a.status === '-')
-            .map(a => a.date ? a.date.slice(5) : ''); // Masalan: "09-02"
+            .map(a => a.date ? a.date.slice(5) : '');
 
           const presentCount = presentDates.length;
           const absentCount = absentDates.length;
@@ -1315,7 +1304,6 @@ export default function App() {
         })
       ];
 
-      // 4. Word hujjati parametrlari
       const doc = new Document({
         sections: [{
           children: [
@@ -2679,27 +2667,26 @@ export default function App() {
                       <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
                   </select>
-                  {/* Tanlangan guruh qarzdorlariga SMS yuborish tugmasi */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedSingleStudent(null);
-                  setIsSmsModalOpen(true);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-md transition"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>
-                  {smsSelectedGroup === 'ALL'
-                    ? "Barcha qarzdorlarga yuborish"
-                    : "Shu guruh qarzdorlariga yuborish"} (
-                  {(students || []).filter(s => 
-                    Number(s.debt || 0) > 0 && 
-                    s.status === 'active' && 
-                    (smsSelectedGroup === 'ALL' || String(s.group_id) === String(smsSelectedGroup))
-                  ).length} ta)
-                </span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSingleStudent(null);
+                      setIsSmsModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-md transition"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>
+                      {smsSelectedGroup === 'ALL'
+                        ? "Barcha qarzdorlarga yuborish"
+                        : "Shu guruh qarzdorlariga yuborish"} (
+                      {(students || []).filter(s => 
+                        Number(s.debt || 0) > 0 && 
+                        s.status === 'active' && 
+                        (smsSelectedGroup === 'ALL' || String(s.group_id) === String(smsSelectedGroup))
+                      ).length} ta)
+                    </span>
+                  </button>
                 </div>
               </div>
               <h4 className="text-sm font-bold text-slate-300">Qarzdor va Eslatma Belgilangan O'quvchilar</h4>
@@ -2880,7 +2867,7 @@ export default function App() {
                 <div className={`p-4 sm:p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
                   <div className="flex items-center gap-2 mb-3">
                     <CreditCard className="text-blue-500" size={20} />
-                    <h3 className="text-base sm:text-lg font-bold">Oylik Qarzdorlikni Avtomatik Hisoblash</h3>
+                    <h3 className="text-base sm:text-lg font-bold">Oylik Qarzdorlikni Qo‘lda Hisoblash</h3>
                   </div>
                   
                   <div className={`p-3.5 rounded-xl mb-4 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
@@ -2896,16 +2883,16 @@ export default function App() {
                       <p className="text-xs text-slate-400 mt-0.5">
                         {isBilledThisMonth 
                           ? 'Ushbu oy uchun guruhlar to‘lov miqdori o‘quvchilar hisobiga yozib bo‘lingan.' 
-                          : `Reja: har oyning ${systemSettings.billingDay}-sanasida tizimga kirilganda avtomatik qo‘shiladi.`}
+                          : `Xavfsiz rejim: qarzdorlik faqat o‘ngdagi tugma orqali 1 marta hisoblanadi.`}
                       </p>
                     </div>
 
                     <button
                       onClick={() => triggerMonthlyBilling(true)}
-                      disabled={billingProcessing}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shrink-0 shadow transition-all disabled:opacity-50 cursor-pointer"
+                      disabled={billingProcessing || isBilledThisMonth}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shrink-0 shadow transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                     >
-                      {billingProcessing ? 'Hisoblanmoqda...' : `${currentMonthName} uchun hozir hisoblash`}
+                      {billingProcessing ? 'Hisoblanmoqda...' : isBilledThisMonth ? `${currentMonthName} uchun qo‘shilgan` : `${currentMonthName} uchun hozir hisoblash`}
                     </button>
                   </div>
 
@@ -3196,7 +3183,7 @@ export default function App() {
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Telefon Raqami</label>
                     <input 
                       type="text" 
-                      placeholder="+998..."
+                      placeholder="+998..." 
                       value={modalData.phone || ''} 
                       onChange={e => setModalData({ ...modalData, phone: e.target.value })} 
                       className="w-full px-3 py-2 rounded-xl border dark:bg-slate-700 dark:border-slate-600 outline-none text-xs sm:text-sm" 
